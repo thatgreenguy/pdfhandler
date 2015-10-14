@@ -14,6 +14,7 @@
 var moment = require( 'moment' ),
   log = require( './common/logger.js' ),
   odb = require( './common/odb.js' ),
+  needlogo = require( './common/needlogo.js' ),
   audit = require( './common/audit.js' );
   
 
@@ -34,7 +35,7 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
   processCount = 0,
   query,
   binds = [],
-  rowBlockSize = 5,
+  rowBlockSize = 1,
   options = { resultSet: true, prefetchRows: rowBlockSize };
 
   response.error = null;
@@ -118,15 +119,31 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 
 
 // Process block of rows - type of post Pdf handling will depend on status
-function processRows ( dbp, dbc, rows, statusFrom, statusTo, hostname ) { 
+function processRows ( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
 
-  if ( rows.length ) {
-
-    rows.forEach( function( row ) {
+  if ( row.length ) {
 
       log.d( 'Processing : ' + row + ' - then updating to status: ' + statusTo );
 
-    });
+      needlogo.logoRequired( dbc, row[ 0 ], function( err, result ) {
+
+        if ( err ) {
+
+          log.e( 'Error trying to check if Logo processing required ' );
+
+        } else {
+
+          if ( result ) {
+
+            log.w( 'Logo required : ' + result );
+
+          } else {
+
+            log.w( 'No Logo processing required ' );
+
+          }
+        }
+      });
   }
 
 }
@@ -146,6 +163,13 @@ function constructQuery( statusFrom, statusTo ) {
 
   query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM testdta.F559811 ";
   query += " WHERE jpyexpst = " + statusFrom;
+
+// TESTING logo required
+  query += " AND jpblkk = '115271 113950' ";
+// TESTING logo NOT required
+//  query += " AND jpblkk = '115285 100331' ";
+
+
 
   log.d( query );
 
