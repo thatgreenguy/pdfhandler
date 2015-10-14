@@ -31,6 +31,7 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
   checkStarted,
   checkFinished,
   duration,
+  processCount = 0,
   query,
   binds = [],
   rowBlockSize = 5,
@@ -54,14 +55,10 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 
     dbc.execute( query, binds, options, function( err, results ) {
 
-log.d( 'here 1:' );
-
       if ( err ) throw err;   
 
       // Recursivly process result set until no more rows
       function processResultSet( dbc ) {
-
-log.d( 'here 2:' );
 
         results.resultSet.getRows( rowBlockSize, function( err, rows ) {
 
@@ -79,6 +76,10 @@ log.d( 'here 2:' );
 
           if ( rows.length ) {
             
+            // Keep track of how many PDF files processed in this run
+            processCount += rows.length;
+
+            // Handle Post PDF processing for block of records just read... 
             processRows( dbp, dbc, rows, statusFrom, statusTo, hostname );
 
             // Process subsequent block of records
@@ -91,6 +92,7 @@ log.d( 'here 2:' );
 
           checkFinished = new Date();
           log.v( 'Check Finished: ' + checkFinished + ' took ' + (checkFinished - checkStarted) + ' milliseconds' );
+          log.v( 'Processed : ' + processCount + ' PDF files' );
 
           results.resultSet.close( function( err ) { 
           if ( err ) log.d( 'Error closing F559811 result set: ' + err );
@@ -105,8 +107,6 @@ log.d( 'here 2:' );
           });
         });
       }
-
-log.d( 'here3' );
 
       // Process first block of records
       processResultSet( dbc );
