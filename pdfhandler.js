@@ -14,7 +14,8 @@
 
 
 var log = require( './common/logger.js' ),
-  ondeath = require( 'death' )({ uncaughtException: true }),
+//  ondeath = require( 'death' )({ uncaughtException: true }),
+  ondeath = require( 'death' ),
   moment = require( 'moment' ),
   odb = require( './common/odb.js' ),
   mounts = require( './common/mounts.js' ),
@@ -25,8 +26,8 @@ var log = require( './common/logger.js' ),
   dbp = null,
   hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
-  processFromStatus = process.env.PROCESS_FROM_STATUS,
-  processToStatus = process.env.PROCESS_TO_STATUS;
+  processFromStatus = process.env.PROCESS_STATUS_FROM,
+  processToStatus = process.env.PROCESS_STATUS_TO;
 
 
 startQueueProcessor();
@@ -89,7 +90,6 @@ function processPool( err, pool ) {
 
 }
 
-// =======================================================================================================
 
 // - Functions
 //
@@ -122,6 +122,9 @@ function performPostRemoteMountChecks( err, data ) {
 
 // Handles scheduling of the next run of the frequently polled process 
 function scheduleNextPolledProcess() {
+
+// TESTING just exit after one pass
+endMonitorProcess();
 
 //  setTimeout( performPolledProcess, pollInterval );
 

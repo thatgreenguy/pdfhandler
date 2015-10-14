@@ -54,10 +54,14 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 
     dbc.execute( query, binds, options, function( err, results ) {
 
+log.d( 'here 1:' );
+
       if ( err ) throw err;   
 
       // Recursivly process result set until no more rows
       function processResultSet( dbc ) {
+
+log.d( 'here 2:' );
 
         results.resultSet.getRows( rowBlockSize, function( err, rows ) {
 
@@ -102,6 +106,8 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
         });
       }
 
+log.d( 'here3' );
+
       // Process first block of records
       processResultSet( dbc );
 
@@ -120,7 +126,6 @@ function processRows ( dbp, dbc, rows, statusFrom, statusTo, hostname ) {
 
       log.d( 'Processing : ' + row + ' - then updating to status: ' + statusTo );
 
-      }
     });
   }
 
@@ -140,7 +145,7 @@ function constructQuery( statusFrom, statusTo ) {
   // Query F559811 by status codes to retrieve a list of PDF that require processing
 
   query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM testdta.F559811 ";
-  query += " WHERE jpyexpst = ' + statusFrom;
+  query += " WHERE jpyexpst = " + statusFrom;
 
   log.d( query );
 
