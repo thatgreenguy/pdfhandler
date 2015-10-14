@@ -12,57 +12,81 @@
 // version which includes Dlink logos.
 
 
-var oracledb = require( 'oracledb' ),
-  log = require( './common/logger.js' ),
+
+var log = require( './common/logger.js' ),
+  ondeath = require( 'death' )({ uncaughtException: true }),
+  moment = require( 'moment' ),
+  odb = require( './common/odb.js' ),
   mounts = require( './common/mounts.js' ),
   audit = require( './common/audit.js' ),
-  pdfChecker = require( './pdfchecker.js' ),
-  pollInterval = 3000,
-  dbCn = null,
-  dbCredentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME },
-  hostname = process.env.HOSTNAME,
-  logLevel = process.env.LOG_LEVEL,
-  lastPdf = null;
+  pdfchecker = require( './pdfchecker.js' ),
+  poolRetryInterval = 30000,
+  pollInterval = 2000,
+  dbp = null,
+  processInfo = process.env.PROCESS_INFO,
+  processFromStatus = process.env.PROCESS_FROM_STATUS,
+  processToStatus = process.env.PROCESS_TO_STATUS;
 
 
-// - Initialisation
+startQueueProcessor();
+
+
+// Functions
 //
-// Set logging level for console output
-if ( typeof(logLevel) === 'undefined' ) {
-  logLevel = 'verbose';
+// startMonitorProcess() 
+// establishPool() 
+// processPool( err, pool ) 
+// calculateTimeOffset( dbp ) 
+// determineMonitorStartDateTime( dbp ) 
+// pollJdePdfQueue( dbp ) 
+// scheduleNextMonitorProcess( dbp ) 
+// endMonitorProcess( signal, err ) 
+//
+
+// Do any startup / initialisation stuff
+function startQueueProcessor() {
+
+  log.i( '' );
+  log.i( '----- DLINK JDE PDF Queue Processor Started - ' + processInfo ); 
+
+  // Handle process exit from DOCKER STOP, system interrupts, uncaughtexceptions or CTRL-C 
+  ondeath( endMonitorProcess );
+
+  // First need to establish an oracle DB connection pool to work with
+  establishPool();
+
 }
-log.transports.console.level = logLevel;
 
-// Expect a valid docker hostname which is used for lock control and log file entries
-log.info( '' );
-log.info( '---------- Dlink PDF Logo Handler - Start Monitoring JDE PrintQueue Jobs ----------'  );
 
-if ( typeof( hostname ) === 'undefined' || hostname === '' ) {
-  log.error( 'pdfhandler.js expects environment variable HOSTNAME to be set by docker container' );
-  log.error( 'pdfhandler.js has detected a serious error - aborting process!' );
-  process.exit( 1 );
+// Establish Oracle DB connection pool
+function establishPool() {
 
-} else {
+  odb.createPool( processPool );
 
-  // Get Oracle Db connection once then pass through to be re-used
-  oracledb.getConnection( dbCredentials, function( err, cn ) {
-    if ( err ) {
-      log.error( 'Oracle DB connection Failure : ' + err );
-      process.exit( 1 );
-    } 
+}
 
-    // Save, pass and reuse the connection
-    dbCn = cn;
 
-    // Log process startup in Jde Audit table 
-    audit.createAuditEntry( 'pdfhandler', 'pdfhandler.js', hostname, 'Start Jde Pdf Logo handler' );
+// Check pool is valid and continue otherwise pause then retry establishing a Pool 
+function processPool( err, pool ) {
 
-    // When process start perform the polled processing immediately then it will repeat periodically
+  if ( err ) {
+
+    log.e( 'Failed to create an Oracle DB Connection Pool will retry shortly' );
+    
+    setTimeout( establishPool, poolRetryInterval );    
+ 
+  } else {
+
+    log.v( 'Oracle DB connection pool established' );
+    dbp = pool;
+
     performPolledProcess();
+    
+  }
 
-  });
 }
 
+// =======================================================================================================
 
 // - Functions
 //
@@ -71,14 +95,6 @@ function performPolledProcess() {
 
   // Check remote mounts to Jde Pdf files are working then process
   mounts.checkRemoteMounts( performPostRemoteMountChecks );
-
-}
-
-// Handles scheduling of the next run of the frequently polled process 
-function scheduleNextPolledProcess() {
-
-  log.verbose( 'Schedule the next Polled process in : ' + polledInterval + ' milliseconds' );
-  setTimeout( performPolledProcess, pollInterval );
 
 }
 
@@ -94,8 +110,16 @@ function performPostRemoteMountChecks( err, data ) {
   } else {
 
     // Remote mounts okay so go ahead and process, checking for new Pdf's etc
-    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, performPolledProcess );
+    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, scheduleNextPolledProcess );
   }
+
+}
+
+
+// Handles scheduling of the next run of the frequently polled process 
+function scheduleNextPolledProcess() {
+
+//  setTimeout( performPolledProcess, pollInterval );
 
 }
 
@@ -126,7 +150,79 @@ function performPostEstablishRemoteMounts( err, data ) {
 
     // Remote mounts okay so go ahead and process, checking for new Pdf's etc
     log.verbose( 'Remote mounts to Jde re-established - will continue normally')
-    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, performPolledProcess );
+    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, scheduleNextPolledProcess );
+  }
+
+}
+
+
+
+
+// EXIT HANDLING
+//
+// Note: DOCKER STOP or CTRL-C is not considered a failed process - just a way to stop this application - so node exits with 0
+// An uncaught exception is considered a program crash so exists with code = 1
+function endMonitorProcess( signal, err ) {
+
+  if ( err ) {
+   
+    log.e( 'Received error from ondeath?' + err ); 
+
+    releaseOracleResources( 2 ); 
+
+
+  } else {
+
+    log.e( 'Node process has died or been interrupted - Signal: ' + signal );
+    log.e( 'Normally this would be due to DOCKER STOP command or CTRL-C or perhaps a crash' );
+    log.e( 'Attempting Cleanup of Oracle DB resources before final exit' );
+  
+    releaseOracleResources( 0 ); 
+
+  }
+
+}
+
+
+// Check to see if database pool is valid and if so attempt to release Oracle DB resources back to the Database
+// This function can be called from endMonitorProcess or if a database related error is detected
+// If unable to release resources cleanly application will exit with non-zero code (connections not released correctly?) 
+function releaseOracleResources( suggestedExitCode ) {
+
+  log.e( 'Problem detected so attempting to release Oracle DB resources' );
+  log.e( 'Application may exit or wait briefly and attempt recovery' );
+
+  // If no exit code passed in default it to exit with 0
+  if ( typeof( suggestedExitCode ) === 'undefined' ) { suggestedExitCode = 0 } 
+
+  // Release Oracle resources
+  if ( dbp ) {
+
+    odb.terminatePool( dbp, function( err ) {
+
+      if ( err ) {
+
+        log.d( 'Failed to release Oracle DB Connection Pool resources: ' + err );
+
+        dbp = null;
+        process.exit( 2 );
+
+      } else {
+
+        log.d( 'Oracle DB Connection Pool resources released successfully: ' );
+
+        process.exit( suggestedExitCode );
+
+      }
+    });
+
+  } else {
+
+    log.d( 'No Oracle DB Connection Pool to release: ' );
+
+    dbp = null;
+    process.exit( suggestedExitCode );
+
   }
 
 }
