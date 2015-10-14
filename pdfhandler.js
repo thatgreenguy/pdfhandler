@@ -23,6 +23,7 @@ var log = require( './common/logger.js' ),
   poolRetryInterval = 30000,
   pollInterval = 2000,
   dbp = null,
+  hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
   processFromStatus = process.env.PROCESS_FROM_STATUS,
   processToStatus = process.env.PROCESS_TO_STATUS;
@@ -45,6 +46,8 @@ startQueueProcessor();
 
 // Do any startup / initialisation stuff
 function startQueueProcessor() {
+
+  if ( typeof( processInfo ) === 'undefined' ) processInfo = 'Process ' + processFromStatus + ' to ' + processToStatus
 
   log.i( '' );
   log.i( '----- DLINK JDE PDF Queue Processor Started - ' + processInfo ); 
@@ -110,7 +113,8 @@ function performPostRemoteMountChecks( err, data ) {
   } else {
 
     // Remote mounts okay so go ahead and process, checking for new Pdf's etc
-    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, scheduleNextPolledProcess );
+    pdfchecker.queryJdePdfProcessQueue( dbp, hostname, processFromStatus, processToStatus, scheduleNextPolledProcess );
+
   }
 
 }
@@ -150,7 +154,8 @@ function performPostEstablishRemoteMounts( err, data ) {
 
     // Remote mounts okay so go ahead and process, checking for new Pdf's etc
     log.verbose( 'Remote mounts to Jde re-established - will continue normally')
-    pdfChecker.performJdePdfProcessing( dbCn, dbCredentials, pollInterval, hostname, lastPdf, scheduleNextPolledProcess );
+    pdfchecker.queryJdePdfProcessQueue( dbp, hostname, processFromStatus, processToStatus, scheduleNextPolledProcess );
+
   }
 
 }
