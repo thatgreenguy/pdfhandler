@@ -108,3 +108,39 @@ module.exports.logoRequired = function( dbc, pdf, cb ) {
   });
 
 }
+
+
+// Update F559811 JDE PDF Process Queue entry - Move to next status
+module.exports.moveToNextStatus = function( dbc, row, statusFrom, statusTo, cb ) {
+
+  var query,
+    binds = [],
+    options = { autoCommit: true };
+
+    query = "UPDATE testdta.F559811 SET jpyexpst = :statusto WHERE jpfndfuf2 = :pdfname AND jpyexpst = :statusfrom";
+
+    log.e( dbc );
+    log.e( JSON.stringify( dbc )  );
+
+    log.e( 'UPDATE status of F559811 : ' + row[ 0 ] + ' from: ' + statusFrom + ' To: ' + statusTo + ' Query: ' + query );
+
+    binds.push( statusTo );
+    binds.push( row[ 0 ] );
+    binds.push( statusFrom );
+
+    dbc.execute( query, binds, options, function( err, result ) {
+
+      if ( err ) {
+      
+        result = row[ 0 ] + ' UPDATE FAILED ' + err;
+        return cb( err );
+
+      } else {
+
+        result = row[ 0 ] + ' UPDATED' ;
+        return cb( null );
+      }
+
+    });
+
+}

@@ -61,7 +61,7 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
       // Recursivly process result set until no more rows
       function processResultSet( dbc ) {
 
-        results.resultSet.getRows( rowBlockSize, function( err, rows ) {
+        results.resultSet.getRows( rowBlockSize, function( err, row ) {
 
           if ( err ) {
             log.w( 'Error encountered trying to query F559811 - release connection and retry ' + err );
@@ -75,13 +75,13 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
             });
           }
 
-          if ( rows.length ) {
+          if ( row.length ) {
             
             // Keep track of how many PDF files processed in this run
-            processCount += rows.length;
+            processCount += row.length;
 
             // Handle Post PDF processing for block of records just read... 
-            processRows( dbp, dbc, rows, statusFrom, statusTo, hostname );
+            processPDF( dbc, row, statusFrom, statusTo, hostname );
 
             // Process subsequent block of records
             processResultSet( dbc ); 
@@ -118,28 +118,73 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 }
 
 
+// Process PDF file
+function processPDF( dbc, row, statusFrom, statusTo, hostname ) { 
+
+log.i( dbc );
+log.i( JSON.stringify( dbc ));
+log.i( row );
+
+
+}
+
+
 // Process block of rows - type of post Pdf handling will depend on status
-function processRows ( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
+function oldxxprocessRows ( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
+
 
   if ( row.length ) {
 
       log.d( 'Processing : ' + row + ' - then updating to status: ' + statusTo );
 
+log.i( dbc );
+log.i( JSON.stringify( dbc ));
+
       needlogo.logoRequired( dbc, row[ 0 ], function( err, result ) {
 
         if ( err ) {
 
-          log.e( 'Error trying to check if Logo processing required ' );
+          log.e( 'Error trying to check if Logo processing required ' + row[ 0 ] );
 
         } else {
 
           if ( result ) {
+log.i( dbc );
+log.i( JSON.stringify( dbc ));
 
-            log.w( 'Logo required : ' + result );
+            log.i( row[ 0 ][ 0 ] + ' : Logo required : ' );
+            needlogo.moveToNextStatus( dbc, row[ 0 ], statusFrom, statusTo, function ( err, result ) {
+
+              if ( err ) {
+
+                log.d( 'UPDATE Failed ' + err );
+
+              } else {
+
+                log.d( 'UPDATE worked ' + err );
+
+              }
+
+            });            
 
           } else {
+log.i( dbc );
+log.i( JSON.stringify( dbc ));
 
-            log.w( 'No Logo processing required ' );
+            log.i( row[ 0 ][ 0 ] +  ' : Logo NOT required ignore : ' );
+            needlogo.moveToNextStatus( dbc, row[ 0 ], statusFrom, statusTo, function ( err, result ) {
+
+              if ( err ) {
+
+                log.d( 'UPDATE Failed ' + err );
+
+              } else {
+
+                log.d( 'UPDATE worked ' + err );
+
+              }
+
+            });            
 
           }
         }
