@@ -8,50 +8,40 @@
   
 
 var oracledb = require( 'oracledb' ),
-  logger = require( './logger' ),
-  moment = require( 'moment' ),
-  credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
+  log = require( './logger' ),
+  moment = require( 'moment' );
 
 
 // Insert new Audit entry into the JDE audit log file.
-exports.createAuditEntry = function( pdfjob, genkey, ctrid, status ) {
+exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, cb ) {
 
   var dt,
   timestamp,
   jdedate,
   jdetime,
-  query;
+  query,
+  binds,
+  options;
 
   dt = new Date();
   timestamp = exports.createTimestamp( dt );
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  if ( typeof( pdfjob ) === 'undefined' ) pdfjob = ' ';
-  if ( typeof( genkey ) === 'undefined' ) genkey = ' ';
-  if ( typeof( ctrid ) === 'undefined' ) ctrid = ' ';
-  if ( typeof( status ) === 'undefined' ) status = ' ';
+  query = "INSERT INTO testdta.F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
+  binds = [ timestamp, pdfjob, genkey, ctrid, status, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
+  options = { autoCommit: true }
 
-  oracledb.getConnection( credentials, function(err, connection) {
-    if ( err ) { 
-      logger.error( 'Oracle DB Connection Failure' );
-      return;
-    }
+  log.d( query );
 
-    query = "INSERT INTO testdta.F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
- 
-    connection.execute( query, [timestamp, pdfjob, genkey, ctrid, status, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ], { autoCommit: true }, function( err, result ) {
+  dbc.execute( query, binds, options, function( err, result ) {
       if ( err ) {
-        logger.error( err.message );
-        return;
+        log.error( err.message );
+        return cb( err );
       }
-      connection.release( function( err ) {
-        if ( err ) {
-          logger.error( err.message );
-          return;
-        }
-      });
-    });
+
+     return cb( null ); 
+ 
   });
 }
 

@@ -22,7 +22,7 @@ var log = require( './common/logger.js' ),
   audit = require( './common/audit.js' ),
   pdfchecker = require( './pdfchecker.js' ),
   poolRetryInterval = 30000,
-  pollInterval = 2000,
+  pollInterval = 5000,
   dbp = null,
   hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
@@ -126,7 +126,7 @@ function scheduleNextPolledProcess() {
 // TESTING just exit after one pass
 //endMonitorProcess();
 
-//  setTimeout( performPolledProcess, pollInterval );
+  setTimeout( performPolledProcess, pollInterval );
 
 }
 

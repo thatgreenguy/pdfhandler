@@ -7,6 +7,7 @@
 var oracledb = require( 'oracledb' ),
   async = require( 'async' ),
   exec = require( 'child_process' ).exec,
+  odb = require( './odb.js' ),
   lock = require( './lock.js' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
@@ -16,7 +17,18 @@ var oracledb = require( 'oracledb' ),
 
 module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
 
-var p = { 'dbp': dbp, 
+var p;
+
+  // Get connection to use
+  oracledb.getConnection( dbp, function( err, cn ) {
+
+    if ( err ) { 
+      log.e( 'Wot No Connection ' + err );
+      return cbWhenDone( err );
+
+    } else {
+
+  p = { 'dbp': dbp, 
           'dbc': dbc, 
           'hostname': hostname,
           'row': row,
@@ -24,7 +36,10 @@ var p = { 'dbp': dbp,
           'jdedate': jdedate,
           'jdetime': jdetime,
           'statusTo': statusTo,
+          'mycn': cn,
           'cbWhenDone': cbWhenDone };
+
+  log.w( 'START p : ' + JSON.stringify( p ));
 
   async.series([
     function( next ) { s1( p, next ) }, 
@@ -35,9 +50,11 @@ var p = { 'dbp': dbp,
     function( next ) { s6( p, next ) }
 
   ], function( err, resp ) {
+
+    log.w( 'END p : ' + JSON.stringify( p ));    
     
     if ( err ) {
-      
+
       log.d( 'Async series experienced error' + err );
       s7( p, function( err ) {
 
@@ -63,14 +80,18 @@ var p = { 'dbp': dbp,
 
   });
 
+  }
+  });
+ 
 }
+
 
 // Get exclusive Lock for this PDF
 function s1( p, cb  ) {
 
   log.d( 'Step 1 Place Lock on this PDF file ' + p.pdf );
 
-  lock.placeLock( p.dbc, p.row, p.hostname, function( err, result ) {
+  lock.placeLock( p.mycn, p.row, p.hostname, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -117,9 +138,14 @@ function s5( p, cb  ) {
 function s6( p, cb  ) {
 
   log.d( 'Step 6 Write Audit Entry ' + p.pdf );
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
   
-  return cb( null )
-
 }
 
 // Release Lock entry for this PDF - Called when processing complete or if error
@@ -127,7 +153,7 @@ function s7( p, cb  ) {
 
   log.d( 'Step 7 Release Lock ' + p.pdf );
 
-  lock.removeContainerLock( p.dbc, p.row, p.hostname, function( err, result ) {
+  lock.removeContainerLock( p.dbp, p.row, p.hostname, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -355,11 +381,5 @@ function createAuditEntry( parms, cb ) {
 }
 
 
-function removeLock( parms ) {
-
-  lock.removeLock( parms.record, parms.hostname );
-  log.verbose( "JDE PDF " + parms.jcfndfuf2 + " - Lock Released" );
-   
-}
 
 

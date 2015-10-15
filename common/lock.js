@@ -7,7 +7,7 @@
 // one application hence simple locking strategy employed here.
 
   
-var oracledb = require('oracledb'),
+var odb = require('./odb.js'),
   audit = require( './audit.js' ),
   log = require( './logger.js' );
 
@@ -25,7 +25,7 @@ exports.placeLock = function( dbc, record, hostname, cb ) {
     query,
     binds,
     options;
-log.v(JSON.stringify(dbc) );
+
     query = "INSERT INTO testdta.F559858 VALUES (:lkfndfuf2, :lksawlatm, :lkactivid, :lkpid, :lkjobn, :lkuser, :lkupmj, :lkupmt)";
     binds = [ jcfndfuf2, timestamp, hostname, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
     options = { autoCommit: true } 
@@ -34,19 +34,20 @@ log.v(JSON.stringify(dbc) );
 
     dbc.execute( query, binds, options, function( err, result ) {
     
-      if ( err ) {
-        log.debug( 'Oracle DB Insert Lock Failure : ' + err.message );
-        return cb( err );
-      }
+        if ( err ) {
+          log.debug( 'Oracle DB Insert Lock Failure : ' + err.message );
+          return cb( null, 'INUSE' );
+        }
 
-      // No error so Lock in place
-      return cb( null );
+        // No error so Lock in place
+        return cb( null, 'LOCKED' )
     });
 }
 
 
+
 // Remove Lock on PDF file
-exports.removeContainerLock = function( dbc, record, hostname, cb ) {
+exports.removeContainerLock = function( dbp, record, hostname, cb ) {
 
   var jcfndfuf2 = record[ 0 ],
     jcprocessid = record[ 3 ],
