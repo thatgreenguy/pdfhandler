@@ -15,6 +15,7 @@ var moment = require( 'moment' ),
   log = require( './common/logger.js' ),
   odb = require( './common/odb.js' ),
   needlogo = require( './common/needlogo.js' ),
+  dologo = require( './common/dologo.js' ),
   audit = require( './common/audit.js' );
   
 
@@ -80,8 +81,10 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
             // Keep track of how many PDF files processed in this run
             processCount += row.length;
 
+            // Process PDF file(s)
+            //
             // Handle Post PDF processing for block of records just read... 
-            processPDF( dbc, row, statusFrom, statusTo, hostname );
+            processPDF( dbp, dbc, row, statusFrom, statusTo, hostname );
 
             // Process subsequent block of records
             processResultSet( dbc ); 
@@ -119,14 +122,24 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 
 
 // Process PDF file
-function processPDF( dbc, row, statusFrom, statusTo, hostname ) { 
+function processPDF( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
 
 log.i( dbc );
 log.i( JSON.stringify( dbc ));
 log.i( row );
 
+dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, allDone );
+
 
 }
+
+function allDone() {
+
+log.i( 'Finished doing Logo stuff' );
+
+
+}
+
 
 
 // Process block of rows - type of post Pdf handling will depend on status

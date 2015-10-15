@@ -124,7 +124,7 @@ function performPostRemoteMountChecks( err, data ) {
 function scheduleNextPolledProcess() {
 
 // TESTING just exit after one pass
-endMonitorProcess();
+//endMonitorProcess();
 
 //  setTimeout( performPolledProcess, pollInterval );
 
