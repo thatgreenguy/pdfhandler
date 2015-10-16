@@ -46,6 +46,42 @@ exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, cb ) {
 }
 
 
+// Update Jde PDF process Queue status from current status to new status 
+// Called after Logo processing completes okay to move from say 100 to (Next Status) 200
+// Or after Mail processing okay to move from 200 to 999 (post PDF processing complete)
+exports.updatePdfQueueStatus = function( dbc, pdfjob, genkey, ctrid, status, cb ) {
+
+  var dt,
+  timestamp,
+  jdedate,
+  jdetime,
+  query,
+  binds,
+  options;
+
+  dt = new Date();
+  timestamp = exports.createTimestamp( dt );
+  jdedate = exports.getJdeJulianDate( dt );
+  jdetime = exports.getJdeAuditTime( dt );
+
+  query = "UPDATE testdta.F559811 SET jpyexpst = '200' WHERE jpfndfuf2 = '" + pdfjob + "'";
+  binds = [ ]
+  options = { autoCommit: true }
+
+  log.d( query );
+
+  dbc.execute( query, binds, options, function( err, result ) {
+      if ( err ) {
+        log.error( err.message );
+        return cb( err );
+      }
+
+     return cb( null ); 
+ 
+  });
+}
+
+
 // Create human readable timestamp string suitable for Audit Logging - Returns timestamp string like 'YYYY-MM-DD T HH:MM:SS MMMMMMMMM'
 // Date and time elements are padded with leading '0' by default. Date and Time separator characters are '-' and ':' by default.
 // MMMMMMMMM is time as milliseconds since epoch to keep generated string unique for same second inserts to Audit Log table. 

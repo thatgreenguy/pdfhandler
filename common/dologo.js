@@ -1,6 +1,6 @@
+// dologo.js 
+//
 // 
-//
-//
 //
 
 
@@ -62,13 +62,13 @@ function validConnection( cn, p ) {
   p.mycn = cn;
 
   async.series([
-    function( next ) { s0( p, next ) }, 
-    function( next ) { s1( p, next ) }, 
-    function( next ) { s2( p, next ) }, 
-    function( next ) { s3( p, next ) }, 
-    function( next ) { s4( p, next ) }, 
-    function( next ) { s5( p, next ) } 
-//    function( next ) { s6( p, next ) }
+    function( next ) { placeLock( p, next ) }, 
+    function( next ) { confirmLogoReady( p, next ) }, 
+    function( next ) { copyPdf( p, next ) }, 
+    function( next ) { applyLogo( p, next ) }, 
+    function( next ) { replaceJdePdf( p, next ) }, 
+    function( next ) { updateProcessQueueStatus( p, next ) } 
+//    function( next ) { writeAuditEntry( p, next ) }
 
   ], function( err, resp ) {
 
@@ -89,18 +89,7 @@ function validConnection( cn, p ) {
 
 
 // Get exclusive Lock for this PDF
-function s0( p, cb  ) {
-
-  log.d( 'Step 0 Ensure parmaters available in all series functions including final... ' );
-  log.d( 'Step 0 : ' + JSON.stringify( p ) );
-
-  return cb( null, p );
-
-}
-
-
-// Get exclusive Lock for this PDF
-function s1( p, cb  ) {
+function placeLock( p, cb  ) {
 
   log.v( p.pdf + ' Step 1 - Place Lock on this PDF file ' );
 
@@ -115,32 +104,53 @@ function s1( p, cb  ) {
 
 
 // Check Audit to make sure it has not been recently processed by any other instance of this app
-function s2( p, cb  ) {
+function confirmLogoReady( p, cb  ) {
 
   log.v( p.pdf + ' Step 2 - Check PDF definitely not yet had Logo applied ' );
   
   return cb( null )
 
 }
+
+
 // Make a backup copy of the original JDE PDF file
-function s3( p, cb  ) {
+function copyPdf( p, cb  ) {
+
+  var cmd;
 
   log.v( p.pdf + ' Step 3 - Backup Original PDF ' );
   
-  return cb( null )
+  cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
+
+  log.d( "JDE PDF " + p.pdf + " - Make backup copy of original JDE PDF file in work directory" );
+  log.d( cmd );
+
+  exec( cmd, function( err, stdout, stderr ) {
+    if ( err ) {
+      log.d( ' ERROR: ' + err );
+      return cb( err, stdout + stderr + " - Failed" );
+    } else {
+      return cb( null, stdout + ' ' + stderr + " - Done" );
+    }
+  });
+  
+//  return cb( null )
 
 }
 
+
 // Apply Logo to each page
-function s4( p, cb  ) {
+function applyLogo( p, cb  ) {
 
   log.v( p.pdf + ' Step 4 - Apply Logo ' );
   
   return cb( null )
 
 }
+
+
 // Replace JDE generated PDF file with modified Logo copy
-function s5( p, cb  ) {
+function replaceJdePdf( p, cb  ) {
 
   log.v( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
   
@@ -148,8 +158,9 @@ function s5( p, cb  ) {
 
 }
 
+
 // Create Audit record signalling PDF has been processed for Logo
-function s6( p, cb  ) {
+function writeAuditEntry( p, cb  ) {
 
   log.v( p.pdf + ' Step 6 - Write Audit Entry ' );
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
@@ -161,6 +172,23 @@ function s6( p, cb  ) {
   }); 
   
 }
+
+
+// Update Pdf entry in JDE Process Queue from current statsu to next Status
+// E.g. When Logo processing done change Pdf Queue entry status from say 100 to 200 (Email check next)
+function updateProcessQueueStatus( p, cb  ) {
+
+  log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Logo done ' );
+  audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
+
 
 // Release Lock entry for this PDF - Called when processing complete or if error
 function finalStep( p  ) {
@@ -203,64 +231,10 @@ function finalStep( p  ) {
 
 
 
-// Called to handle processing of first and subsequent 'new' PDF Entries detected in JDE Output Queue  
-function processPdfEntry( dbCn, rsF556110, begin, jobControlRecord, firstRecord, pollInterval, hostname, lastPdf, performPolledProcess ) {
-
-  var cb = null,
-    currentPdf;
-
-  currentPdf = jobControlRecord[ 0 ];
-  log.verbose('Last PDF: ' + lastPdf + ' currentPdf: ' + currentPdf );
-
-  // If latest JDE Pdf job name does not match the previous one we have a change so check and process in detail 
-  if ( lastPdf !== currentPdf ) {
-
-    log.debug(" Last PDF: " + lastPdf + ' Current one: ' + currentPdf );
-    log.info( "          >>>>  CHANGE detected in JDE Output Queue <<<<");
-
-    // Before processing recently noticed PDF file(s) first check mount points and re-establish if necessary
-    var cb = function() { processLockedPdfFile( dbCn, jobControlRecord, hostname ); }
-    lock.gainExclusivity( jobControlRecord, hostname, dbCn, cb );
-      
-  }           
-
-/*  if ( firstRecord ) {
-
-    firstRecord = false;
-    currentPdf = jobControlRecord[ 0 ];
-
-    log.verbose('First Record: ' + firstRecord + ' processPdfEntry: ' + jobControlRecord );
-    // If latest JDE Pdf job name does not match the previous one we have a change so check and process in detail 
-    if ( lastPdf !== currentPdf ) {
-
-      log.debug(" Last PDF file : " + lastPdf);
-      log.debug(" Latest PDF file : " + currentPdf);
-//      log.info( " ");
-//      log.info( "          >>>>  CHANGE detected in JDE Output Queue <<<<");
-//      log.info( " ");
-
-      // Before processing recently noticed PDF file(s) first check mount points and re-establish if necessary
-      var cb = function() { processLockedPdfFile( dbCn, jobControlRecord, audit, log, hostname ); }
-      lock.gainExclusivity( jobControlRecord, hostname, dbCn, cb );
-      
-    }           
-
-  } else {
-
-    // Process second and subsequent records.
-    var cb = function() { processLockedPdfFile( dbCn, jobControlRecord, audit, log, hostname ); }
-    lock.gainExclusivity( jobControlRecord, hostname, dbCn, cb );		
-  }
-*/
-
-  // Process subsequent PDF entries if any - Read next Job Control record
-  processResultsFromF556110( dbCn, rsF556110, numRows, begin, firstRecord, pollInterval, hostname, lastPdf, performPolledProcess );
-
-}
 
 
 // Called when exclusive lock has been successfully placed to process the PDF file
-function processLockedPdfFile(dbCn, record, hostname ) {
+function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
 
     var query,
         countRec,
@@ -303,7 +277,7 @@ function processLockedPdfFile(dbCn, record, hostname ) {
 
 
 // Exclusive use / lock of PDF file established so free to process the file here.
-function processPDF( record, hostname ) {
+function OLDprocessPDF( record, hostname ) {
 
     var jcfndfuf2 = record[ 0 ],
         jcactdate = record[ 1 ],
@@ -339,20 +313,10 @@ function processPDF( record, hostname ) {
 }
 
 
-// Ensure required parameters for releasing lock are available in final async function
-// Need to release lock if PDF file processed okay or failed with errors so it can be picked up and recovered by future runs!
-// For example sshfs dbCn to remote directories on AIX might go down and re-establish later
-function passParms(parms, cb) {
-
-  log.debug( 'passParms' + ' : ' + parms );
-  cb( null, parms);  
-
-}
-
 
 // Make a backup copy of the original JDE PDF file - just in case we need the untouched original
 // These can be purged inline with the normal JDE PrintQueue - currently PDF's older than approx 2 months
-function copyJdePdfToWorkDir( parms, cb ) {
+function OLDcopyJdePdfToWorkDir( parms, cb ) {
 
   var cmd = "cp /home/pdfdata/" + parms.jcfndfuf2 + " /home/shareddata/wrkdir/" + parms.jcfndfuf2.trim() + "_ORIGINAL";
 
@@ -366,11 +330,12 @@ function copyJdePdfToWorkDir( parms, cb ) {
       cb( null, cmd + " - Done" );
     }
   });
+
 }
 
 
 // Read original PDF and create new replacement version in working directory with logos added
-function applyLogo( parms, cb ) {
+function OLDapplyLogo( parms, cb ) {
 
   var pdfInput = "/home/shareddata/wrkdir/" + parms.jcfndfuf2.trim() + "_ORIGINAL",
     pdfOutput = '/home/shareddata/wrkdir/' + parms.jcfndfuf2,
@@ -391,7 +356,7 @@ function applyLogo( parms, cb ) {
 
 
 // Replace original JDE PDF File in PrintQueue with amended PDF incuding logos
-function replaceJdePdfWithLogoVersion( parms, cb ) {
+function OLDreplaceJdePdfWithLogoVersion( parms, cb ) {
 
   var pdfWithLogos = "/home/shareddata/wrkdir/" + parms.jcfndfuf2,
     jdePrintQueue = "/home/pdfdata/" + parms.jcfndfuf2,
@@ -410,7 +375,7 @@ function replaceJdePdfWithLogoVersion( parms, cb ) {
 }
 
 
-function createAuditEntry( parms, cb ) {
+function OLDcreateAuditEntry( parms, cb ) {
 
   // Create Audit entry for this Processed record - once created it won't be processed again
   audit.createAuditEntry( parms.jcfndfuf2, parms.genkey, parms.hostname, "PROCESSED - LOGO" );
