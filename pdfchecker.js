@@ -59,6 +59,21 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
 
       if ( err ) throw err;   
 
+      // Process PDF file
+      function processPDF( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
+
+        var cb;
+
+        log.i( dbc );
+        log.i( JSON.stringify( dbc ));
+        log.i( row );
+
+        // Process subsequent block of records when finished with current Pdf
+        cb = function() { processResultSet( dbc ); };
+        dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, cb );
+
+      }
+
       // Recursivly process result set until no more rows
       function processResultSet( dbc ) {
 
@@ -86,9 +101,6 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
             // Handle Post PDF processing for block of records just read... 
             processPDF( dbp, dbc, row, statusFrom, statusTo, hostname );
 
-            // Process subsequent block of records
-            processResultSet( dbc ); 
- 
             return;
 
           }
@@ -119,93 +131,6 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
     });
   });
 }
-
-
-// Process PDF file
-function processPDF( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
-
-log.i( dbc );
-log.i( JSON.stringify( dbc ));
-log.i( row );
-
-dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, allDone );
-
-
-}
-
-function allDone() {
-
-log.i( 'Finished doing Logo stuff' );
-
-
-}
-
-
-
-// Process block of rows - type of post Pdf handling will depend on status
-function oldxxprocessRows ( dbp, dbc, row, statusFrom, statusTo, hostname ) { 
-
-
-  if ( row.length ) {
-
-      log.d( 'Processing : ' + row + ' - then updating to status: ' + statusTo );
-
-log.i( dbc );
-log.i( JSON.stringify( dbc ));
-
-      needlogo.logoRequired( dbc, row[ 0 ], function( err, result ) {
-
-        if ( err ) {
-
-          log.e( 'Error trying to check if Logo processing required ' + row[ 0 ] );
-
-        } else {
-
-          if ( result ) {
-log.i( dbc );
-log.i( JSON.stringify( dbc ));
-
-            log.i( row[ 0 ][ 0 ] + ' : Logo required : ' );
-            needlogo.moveToNextStatus( dbc, row[ 0 ], statusFrom, statusTo, function ( err, result ) {
-
-              if ( err ) {
-
-                log.d( 'UPDATE Failed ' + err );
-
-              } else {
-
-                log.d( 'UPDATE worked ' + err );
-
-              }
-
-            });            
-
-          } else {
-log.i( dbc );
-log.i( JSON.stringify( dbc ));
-
-            log.i( row[ 0 ][ 0 ] +  ' : Logo NOT required ignore : ' );
-            needlogo.moveToNextStatus( dbc, row[ 0 ], statusFrom, statusTo, function ( err, result ) {
-
-              if ( err ) {
-
-                log.d( 'UPDATE Failed ' + err );
-
-              } else {
-
-                log.d( 'UPDATE worked ' + err );
-
-              }
-
-            });            
-
-          }
-        }
-      });
-  }
-
-}
-
 
 
 // Construct query to select entries that require processing according to passed status codes

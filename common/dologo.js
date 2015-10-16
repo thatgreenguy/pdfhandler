@@ -17,18 +17,9 @@ var oracledb = require( 'oracledb' ),
 
 module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
 
-var p;
+  var pargs;
 
-  // Get connection to use
-  oracledb.getConnection( dbp, function( err, cn ) {
-
-    if ( err ) { 
-      log.e( 'Wot No Connection ' + err );
-      return cbWhenDone( err );
-
-    } else {
-
-  p = { 'dbp': dbp, 
+  pargs = { 'dbp': dbp, 
           'dbc': dbc, 
           'hostname': hostname,
           'row': row,
@@ -36,10 +27,46 @@ var p;
           'jdedate': jdedate,
           'jdetime': jdetime,
           'statusTo': statusTo,
-          'mycn': cn,
           'cbWhenDone': cbWhenDone };
 
-  log.w( 'START p : ' + JSON.stringify( p ));
+  // Grab a connection from the pool
+  odb.getConnection( dbp, function( err, cn ) {
+
+    if ( err ) {
+
+      return invalidConnection( err, pargs );
+
+    } else {
+
+      return validConnection( cn, pargs )
+
+    }
+  });
+}
+
+
+// Could not get a Connection - return and retry after polling interval
+function invalidConnection( err, pargs ) {
+
+  log.i( 'Unable to get a connection at the moment - give up and retry on next poll ' );
+  log.d( JSON.stringify( pargs ) );
+  
+  return ( pargs.cbWhenDone( null ) );
+
+}
+
+
+// Connection established continue with Logo processing
+function validConnection( cn, p ) {
+
+  log.d( 'Valid Connection established ' + cn );
+  log.d( JSON.stringify( p ) );
+
+  p.mycn = cn;
+
+//  
+//  return ( pargs.cbWhenDone( null ) );
+
 
   async.series([
     function( next ) { s1( p, next ) }, 
@@ -52,16 +79,18 @@ var p;
   ], function( err, resp ) {
 
     log.w( 'END p : ' + JSON.stringify( p ));    
-    
+
     if ( err ) {
 
       log.d( 'Async series experienced error' + err );
       s7( p, function( err ) {
 
         if ( err ) {
-          cbWhenDone( err );
+//          return p.cbWhenDone( err );
+          return exitAndReturn( p );
         } else {
-          cbWhenDone( null );
+//         return  p.cbWhenDone( null );
+          return exitAndReturn( p );
         }
       }); 
 
@@ -71,19 +100,43 @@ var p;
       s7( p, function( err ) {
 
         if ( err ) {
-          cbWhenDone( err );
+//          return p.cbWhenDone( err );
+          return exitAndReturn( p );
         } else {
-          cbWhenDone( null );
+//          return p.cbWhenDone( null );
+          return exitAndReturn( p );
         }
       }); 
     }
-
-  });
-
-  }
-  });
- 
+  }); 
 }
+
+
+function exitAndReturn( p ) {
+
+  log.v( 'Logo Processing Complete : ' );
+  log.v( 'Release DB resources then return : ' );
+
+  // Release the Connection then handle end of series processing
+  if ( p.mycn ) { 
+
+    p.mycn.release( function( err ) {
+      if ( err ) {
+        log.e( 'Unable to release DB connection ' + err );
+        return p.cbWhenDone( err ); 
+      } else {
+        log.v( 'DB Resource connection released - Finished so return' );
+        return p.cbWhenDone( null ); 
+      }
+    });
+  } else {
+
+    log.v( 'No Connection to release - Finished so return' );
+    return p.cbWhenDone( null ); 
+    
+  }
+}
+
 
 
 // Get exclusive Lock for this PDF
@@ -153,7 +206,7 @@ function s7( p, cb  ) {
 
   log.d( 'Step 7 Release Lock ' + p.pdf );
 
-  lock.removeContainerLock( p.dbp, p.row, p.hostname, function( err, result ) {
+  lock.removeContainerLock( p.dbc, p.row, p.hostname, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
