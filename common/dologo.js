@@ -134,28 +134,63 @@ function copyPdf( p, cb  ) {
     }
   });
   
-//  return cb( null )
-
 }
 
 
 // Apply Logo to each page
 function applyLogo( p, cb  ) {
 
-  log.v( p.pdf + ' Step 4 - Apply Logo ' );
-  
-  return cb( null )
+  var pdfInput,
+    pdfOutput,
+    cmd;
 
+  log.v( p.pdf + ' Step 4 - Apply Logo ' );
+
+  pdfInput = "/home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
+  pdfOutput = '/home/shareddata/wrkdir/' + p.pdf;
+  cmd = "node ./src/pdfaddlogo.js " + pdfInput + " " + pdfOutput;
+
+  log.v( "JDE PDF " + p.pdf + " - Read original creating new PDF in work Directory with logos" );
+  log.d( cmd );
+
+  exec( cmd, function( err, stdout, stderr ) {
+    if ( err !== null ) {
+      log.d( cmd + ' ERROR: ' + err );
+      log.w( 'Errors when applying Logo: Check but likely due to Logo already applied in prior run: ');
+      return cb( err, stdout + stderr + " - Failed" );
+    } else {
+      return cb( null, stdout + ' ' + stderr + " - Done" );
+    }
+  });
+  
 }
 
 
 // Replace JDE generated PDF file with modified Logo copy
 function replaceJdePdf( p, cb  ) {
 
+  var pdfInput,
+    pdfOutput,
+    cmd;
+
   log.v( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
   
-  return cb( null )
+  pdfWithLogos = "/home/shareddata/wrkdir/" + p.pdf;
+  jdePrintQueue = "/home/pdfdata/" + p.pdf,
+  cmd = "mv " + pdfWithLogos + " " + jdePrintQueue;
 
+  log.v( "JDE PDF " + p.pdf + " - Replace JDE output queue PDF with modified Logo version" );
+  log.d( cmd );
+
+  exec( cmd, function( err, stdout, stderr ) {
+    if ( err !== null ) {
+      log.debug( cmd + ' ERROR: ' + err );
+      return cb( err, stdout + stderr + " - Failed" );
+    } else {
+      return cb( null, stdout + ' ' + stderr + " - Done" );
+    }
+  });
+ 
 }
 
 
@@ -230,9 +265,7 @@ function finalStep( p  ) {
 
 
 
-
-
-
+// =================================================== OLD ===============
 // Called when exclusive lock has been successfully placed to process the PDF file
 function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
 
@@ -274,115 +307,6 @@ function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
         }
     }); 
 }
-
-
-// Exclusive use / lock of PDF file established so free to process the file here.
-function OLDprocessPDF( record, hostname ) {
-
-    var jcfndfuf2 = record[ 0 ],
-        jcactdate = record[ 1 ],
-        jcacttime = record[ 2 ],
-        jcprocessid = record[ 3 ],
-        genkey = jcactdate + " " + jcacttime,
-        parms = null;
-
-    // Make parameters available to any function in series
-    parms = { "jcfndfuf2": jcfndfuf2, "record": record, "genkey": genkey, "hostname": hostname };
-
-    async.series([
-        function ( cb ) { passParms( parms, cb ) }, 
-        function ( cb ) { copyJdePdfToWorkDir( parms, cb ) }, 
-        function ( cb ) { applyLogo( parms, cb ) }, 
-//        function ( cb ) { replaceJdePdfWithLogoVersion( parms, cb ) },
-        function ( cb ) { createAuditEntry( parms, cb ) }
-        ], function(err, results) {
-
-             var prms = results[ 0 ];
-
-             // Lose lock regardless whether PDF file proceesed correctly or not
-             removeLock( prms );
-
-             // log results of Pdf processing
-             if ( err ) {
-               log.error("JDE PDF " + prms.jcfndfuf2 + " - Processing failed - check logs in ./logs");
-	     } else {
-               log.info("JDE PDF " + prms.jcfndfuf2 + " - Processing Complete - Logos added");
-             }
-           }
-    );
-}
-
-
-
-// Make a backup copy of the original JDE PDF file - just in case we need the untouched original
-// These can be purged inline with the normal JDE PrintQueue - currently PDF's older than approx 2 months
-function OLDcopyJdePdfToWorkDir( parms, cb ) {
-
-  var cmd = "cp /home/pdfdata/" + parms.jcfndfuf2 + " /home/shareddata/wrkdir/" + parms.jcfndfuf2.trim() + "_ORIGINAL";
-
-  log.verbose( "JDE PDF " + parms.jcfndfuf2 + " - Make backup copy of original JDE PDF file in work directory" );
-  log.debug( cmd );
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.debug( cmd + ' ERROR: ' + err );
-      cb( err, cmd + " - Failed" );
-    } else {
-      cb( null, cmd + " - Done" );
-    }
-  });
-
-}
-
-
-// Read original PDF and create new replacement version in working directory with logos added
-function OLDapplyLogo( parms, cb ) {
-
-  var pdfInput = "/home/shareddata/wrkdir/" + parms.jcfndfuf2.trim() + "_ORIGINAL",
-    pdfOutput = '/home/shareddata/wrkdir/' + parms.jcfndfuf2,
-    cmd = "node ./src/pdfaddlogo.js " + pdfInput + " " + pdfOutput ;
-
-  log.verbose( "JDE PDF " + parms.jcfndfuf2 + " - Read original creating new PDF in work Directory with logos" );
-  log.debug( cmd );
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.debug( cmd + ' ERROR: ' + err );
-      log.info( 'Errors when applying Logo: Check but likely due to Logo already applied in prior run: ');
-      cb( err, cmd + " - Failed" );
-    } else {
-      cb( null, cmd + " - Done" );
-    }
-  });
-}
-
-
-// Replace original JDE PDF File in PrintQueue with amended PDF incuding logos
-function OLDreplaceJdePdfWithLogoVersion( parms, cb ) {
-
-  var pdfWithLogos = "/home/shareddata/wrkdir/" + parms.jcfndfuf2,
-    jdePrintQueue = "/home/pdfdata/" + parms.jcfndfuf2,
-    cmd = "mv " + pdfWithLogos + " " + jdePrintQueue;
-
-  log.verbose( "JDE PDF " + parms.jcfndfuf2 + " - Replace JDE output queue PDF with modified Logo version" );
-  log.debug( cmd );
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.debug( cmd + ' ERROR: ' + err );
-      cb( err, cmd + " - Failed" );
-    } else {
-      cb( null, cmd + " - Done" );
-    }
-  });
-}
-
-
-function OLDcreateAuditEntry( parms, cb ) {
-
-  // Create Audit entry for this Processed record - once created it won't be processed again
-  audit.createAuditEntry( parms.jcfndfuf2, parms.genkey, parms.hostname, "PROCESSED - LOGO" );
-  log.verbose( "JDE PDF " + parms.jcfndfuf2 + " - Audit Record written to JDE" );
-  cb( null, "Audit record written" );
-}
-
 
 
 
