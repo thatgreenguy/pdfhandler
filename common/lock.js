@@ -73,6 +73,7 @@ exports.removeContainerLock = function( dbc, record, hostname, cb ) {
         log.debug( 'Oracle DB Delete Lock failure : ' + err );
         return cb( err );
       }
+      return cb( null );
     });
 }
 

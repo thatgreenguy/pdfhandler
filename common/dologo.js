@@ -76,64 +76,21 @@ function validConnection( cn, p ) {
   ], function( err, resp ) {
 
     log.w( 'END p : ' + JSON.stringify( p ));    
+    log.v( 'Logo Processing Complete : ' );
+    log.v( 'Release Lock, Connection then continue back to caller : ' );
 
     if ( err ) {
 
       log.d( 'Async series experienced error' + err );
-      s7( p, function( err ) {
-
-        if ( err ) {
-//          return p.cbWhenDone( err );
-          return exitAndReturn( p );
-        } else {
-//         return  p.cbWhenDone( null );
-          return exitAndReturn( p );
-        }
-      }); 
+      s7( p ) 
 
     } else {
 
       log.d( 'Async series Done' );
-      s7( p, function( err ) {
-
-        if ( err ) {
-//          return p.cbWhenDone( err );
-          return exitAndReturn( p );
-        } else {
-//          return p.cbWhenDone( null );
-          return exitAndReturn( p );
-        }
-      }); 
+      s7( p )
     }
   }); 
 }
-
-
-function exitAndReturn( p ) {
-
-  log.v( 'Logo Processing Complete : ' );
-  log.v( 'Release DB resources then return : ' );
-
-  // Release the Connection then handle end of series processing
-  if ( p.mycn ) { 
-
-    p.mycn.release( function( err ) {
-      if ( err ) {
-        log.e( 'Unable to release DB connection ' + err );
-        return p.cbWhenDone( err ); 
-      } else {
-        log.v( 'DB Resource connection released - Finished so return' );
-        return p.cbWhenDone( null ); 
-      }
-    });
-  } else {
-
-    log.v( 'No Connection to release - Finished so return' );
-    return p.cbWhenDone( null ); 
-    
-  }
-}
-
 
 
 // Get exclusive Lock for this PDF
@@ -211,17 +168,59 @@ function s6( p, cb  ) {
 }
 
 // Release Lock entry for this PDF - Called when processing complete or if error
-function s7( p, cb  ) {
+function s7( p  ) {
 
   log.d( 'Step 7 Release Lock ' + p.pdf );
   log.w( 'Step 7 : ' + JSON.stringify( p ) );
 
   lock.removeContainerLock( p.mycn, p.row, p.hostname, function( err, result ) {
+
     if ( err ) {
-      return cb( err )
+      //return cb( err )
+
+log.i( 'OK im here ') 
+
+
+      releaseAndReturn( p );
     } else {
-      return cb( null )
+
+log.i( 'OK im here ') 
+
+
+      //return cb( null )
+      releaseAndReturn( p );
+
     }
+
+
+
+
+function releaseAndReturn( p ) {
+  // Don't care about any error on this callback once here just release the Lock, release 
+  // the connection then return to calling function
+ 
+
+   if ( p.mycn ) { 
+
+    p.mycn.release( function( err ) {
+      if ( err ) {
+        log.e( 'Unable to release DB connection ' + err );
+        p.cbWhenDone( err ); 
+      } else {
+        log.v( 'DB Resource connection released - Finished so return' );
+        p.cbWhenDone( null ); 
+      }
+    });
+  } else {
+
+    log.v( 'No Connection to release - Finished so return' );
+    p.cbWhenDone( null ); 
+    
+  }
+}
+
+
+
   }); 
 }
 
