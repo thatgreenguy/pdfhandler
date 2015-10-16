@@ -73,19 +73,19 @@ module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, s
         // If status is 100 then do Logo processing
         // If status is 200 then do Mail processing
         // Otherwise punch warning as not sure what to do with this record - check env variable settings
-        if ( row[ 1 ] === '100' ) {
+        if ( row[ 0 ][ 1 ] === '100' ) {
 
           dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, cb );
 
         } else {
   
-          if ( row[ 1 ] === '200' ) {
+          if ( row[ 0 ][ 1 ] === '200' ) {
 
             domail.doMail( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, cb );
 
           } else {
 
-            log.w( 'Expected status of 100 or 200 to process Logo or Mail - not sure what to do with : ' + row[ 1 ] );
+            log.w( 'Expected status of 100 or 200 to process Logo or Mail - not sure what to do with : ' + row[ 0 ][ 1 ] );
             log.w( 'Check environment variable settings for running container - particularly PROCESS_STATUS_* values' );
             log.w( 'Should be from 100 to 200 or from 200 to 999 - unless your adding another process to the mix!' );
             log.w( 'Row : ' + row + ' Ignored' );

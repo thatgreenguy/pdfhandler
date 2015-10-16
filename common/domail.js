@@ -1,4 +1,4 @@
-// dologo.js 
+// domail.js 
 //
 // 
 //
@@ -11,11 +11,12 @@ var oracledb = require( 'oracledb' ),
   lock = require( './lock.js' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
+  mail = require( './mail.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
   dirLocalJdePdf = process.env.DIR_SHAREDDATA;
 
 
-module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
+module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
 
   var pargs;
 
@@ -63,11 +64,8 @@ function validConnection( cn, p ) {
 
   async.series([
     function( next ) { placeLock( p, next ) }, 
-    function( next ) { confirmLogoReady( p, next ) }, 
-    function( next ) { copyPdf( p, next ) }, 
-    function( next ) { applyLogo( p, next ) }, 
-    function( next ) { replaceJdePdf( p, next ) }, 
-    function( next ) { updateProcessQueueStatus( p, next ) } 
+    function( next ) { mailReport( p, next ) } 
+//    function( next ) { updateProcessQueueStatus( p, next ) } 
 //    function( next ) { writeAuditEntry( p, next ) }
 
   ], function( err, resp ) {
@@ -103,98 +101,34 @@ function placeLock( p, cb  ) {
 }
 
 
-// Check Audit to make sure it has not been recently processed by any other instance of this app
-function confirmLogoReady( p, cb  ) {
+// Fetch the Email configuration for this Report and Version
+function mailReport( p, cb  ) {
 
-  log.v( p.pdf + ' Step 2 - Check PDF definitely not yet had Logo applied ' );
-  
-  return cb( null )
+  var pdfInput,
+    pdfOutput,
+    cmd;
 
-}
+  log.v( p.pdf + ' Step 2 - Check Mail Config for Report/Version and Email Report if required ' );
 
-
-// Make a backup copy of the original JDE PDF file
-function copyPdf( p, cb  ) {
-
-  var cmd;
-
-  log.v( p.pdf + ' Step 3 - Backup Original PDF ' );
-  
-  cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
-
-  log.d( "JDE PDF " + p.pdf + " - Make backup copy of original JDE PDF file in work directory" );
-  log.d( cmd );
-
-  exec( cmd, function( err, stdout, stderr ) {
+  domail.prepMail( p.pdf, mailOptions, function( err, result ) {
     if ( err ) {
-      log.d( ' ERROR: ' + err );
-      return cb( err, stdout + stderr + " - Failed" );
+
+      log.i( 'doMail: Error ' + err );
+      return cb( err )
+
     } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
+
+      log.i( 'doMail: OK ' + result );
+      return cb( null )
+
     }
-  });
+  }); 
   
 }
 
 
-// Apply Logo to each page
-function applyLogo( p, cb  ) {
 
-  var pdfInput,
-    pdfOutput,
-    cmd;
-
-  log.v( p.pdf + ' Step 4 - Apply Logo ' );
-
-  pdfInput = "/home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
-  pdfOutput = '/home/shareddata/wrkdir/' + p.pdf;
-  cmd = "node ./src/pdfaddlogo.js " + pdfInput + " " + pdfOutput;
-
-  log.v( "JDE PDF " + p.pdf + " - Read original creating new PDF in work Directory with logos" );
-  log.d( cmd );
-
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.d( cmd + ' ERROR: ' + err );
-      log.w( 'Errors when applying Logo: Check but likely due to Logo already applied in prior run: ');
-      return cb( err, stdout + stderr + " - Failed" );
-    } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
-    }
-  });
-  
-}
-
-
-// Replace JDE generated PDF file with modified Logo copy
-function replaceJdePdf( p, cb  ) {
-
-  var pdfInput,
-    pdfOutput,
-    cmd;
-
-  log.v( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
-  
-  pdfWithLogos = "/home/shareddata/wrkdir/" + p.pdf;
-  jdePrintQueue = "/home/pdfdata/" + p.pdf,
-  cmd = "mv " + pdfWithLogos + " " + jdePrintQueue;
-
-  log.v( "JDE PDF " + p.pdf + " - Replace JDE output queue PDF with modified Logo version" );
-  log.d( cmd );
-
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.debug( cmd + ' ERROR: ' + err );
-      return cb( err, stdout + stderr + " - Failed" );
-    } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
-    }
-  });
- 
-}
-
-
-// Create Audit record signalling PDF has been processed for Logo
+// Create Audit record signalling PDF has been processed for Mailing
 function writeAuditEntry( p, cb  ) {
 
   log.v( p.pdf + ' Step 6 - Write Audit Entry ' );
@@ -209,8 +143,8 @@ function writeAuditEntry( p, cb  ) {
 }
 
 
-// Update Pdf entry in JDE Process Queue from current statsu to next Status
-// E.g. When Logo processing done change Pdf Queue entry status from say 100 to 200 (Email check next)
+// Update Pdf entry in JDE Process Queue from current status to next Status
+// E.g. When Mail processing done change Pdf Queue entry status from say 200 to 999 (Complete)
 function updateProcessQueueStatus( p, cb  ) {
 
   log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Logo done ' );
@@ -256,57 +190,9 @@ function finalStep( p  ) {
        });
      } else {
        log.d( 'No Connection to release - Finished so return' );
-       log.v( p.pdf + ' finalStep - Logo Processing Complete ' );
+       log.v( p.pdf + ' finalStep - Mail Processing Complete ' );
        p.cbWhenDone( null ); 
       }
     }
   }); 
 }
-
-
-
-// =================================================== OLD ===============
-// Called when exclusive lock has been successfully placed to process the PDF file
-function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
-
-    var query,
-        countRec,
-        count,
-        cb = null;
-
-    log.info( 'JDE PDF ' + record[ 0 ] + " - Lock established" );
-
-    // Check this PDF file has definitely not yet been processed by any other pdfHandler instance
-    // that may be running concurrently
-
-    query = "SELECT COUNT(*) FROM testdta.F559859 WHERE pafndfuf2 = '";
-    query += record[0] + "'";
-
-    dbCn.execute( query, [], { }, function( err, result ) {
-        if ( err ) { 
-            log.debug( err.message );
-            return;
-        };
-
-        countRec = result.rows[ 0 ];
-        count = countRec[ 0 ];
-        if ( count > 0 ) {
-            log.info( 'JDE PDF ' + record[ 0 ] + " - Already Processed - Releasing Lock." );
-            lock.removeLock( record, hostname );
-
-        } else {
-             log.info( 'JDE PDF ' + record[0] + ' - Processing Started' );
-
-             // This PDF file has not yet been processed and we have the lock so process it now.
-             // Note: Lock will be removed if all process steps complete or if there is an error
-             // Last process step creates an audit entry which prevents file being re-processed by future runs 
-             // so if error and lock removed - no audit entry therefore file will be re-processed by future run (recovery)	
-             
-             processPDF( record, hostname ); 
-
-        }
-    }); 
-}
-
-
-
