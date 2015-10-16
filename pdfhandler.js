@@ -22,7 +22,7 @@ var log = require( './common/logger.js' ),
   audit = require( './common/audit.js' ),
   pdfchecker = require( './pdfchecker.js' ),
   poolRetryInterval = 30000,
-  pollInterval = 5000,
+  pollInterval = 7000,
   dbp = null,
   hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
@@ -122,9 +122,6 @@ function performPostRemoteMountChecks( err, data ) {
 
 // Handles scheduling of the next run of the frequently polled process 
 function scheduleNextPolledProcess() {
-
-// TESTING just exit after one pass
-//endMonitorProcess();
 
   setTimeout( performPolledProcess, pollInterval );
 

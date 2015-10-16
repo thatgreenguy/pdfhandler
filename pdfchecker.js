@@ -148,7 +148,7 @@ function constructQuery( statusFrom, statusTo ) {
   query += " WHERE jpyexpst = " + statusFrom;
 
 // TESTING logo required
-  query += " AND jpblkk = '115271 113950' ";
+  query += " AND jpblkk like '115271%' ";
 // TESTING logo NOT required
 //  query += " AND jpblkk = '115285 100331' ";
 
