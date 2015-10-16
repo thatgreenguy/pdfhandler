@@ -47,7 +47,7 @@ exports.placeLock = function( dbc, record, hostname, cb ) {
 
 
 // Remove Lock on PDF file
-exports.removeContainerLock = function( dbp, record, hostname, cb ) {
+exports.removeContainerLock = function( dbc, record, hostname, cb ) {
 
   var jcfndfuf2 = record[ 0 ],
     jcprocessid = record[ 3 ],
@@ -59,7 +59,8 @@ exports.removeContainerLock = function( dbp, record, hostname, cb ) {
     query,
     binds,
     options;
-log.v(JSON.stringify(dbc) );
+
+    log.v(JSON.stringify(dbc) );
 
     query = "DELETE FROM testdta.F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
     binds = [];

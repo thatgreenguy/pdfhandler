@@ -64,17 +64,14 @@ function validConnection( cn, p ) {
 
   p.mycn = cn;
 
-//  
-//  return ( pargs.cbWhenDone( null ) );
-
-
   async.series([
+    function( next ) { s0( p, next ) }, 
     function( next ) { s1( p, next ) }, 
     function( next ) { s2( p, next ) }, 
     function( next ) { s3( p, next ) }, 
     function( next ) { s4( p, next ) }, 
-    function( next ) { s5( p, next ) }, 
-    function( next ) { s6( p, next ) }
+    function( next ) { s5( p, next ) } 
+//    function( next ) { s6( p, next ) }
 
   ], function( err, resp ) {
 
@@ -140,6 +137,17 @@ function exitAndReturn( p ) {
 
 
 // Get exclusive Lock for this PDF
+function s0( p, cb  ) {
+
+  log.d( 'Step 0 Ensure parmaters available in all series functions including final... ' );
+  log.d( 'Step 0 : ' + JSON.stringify( p ) );
+
+  return cb( null, p );
+
+}
+
+
+// Get exclusive Lock for this PDF
 function s1( p, cb  ) {
 
   log.d( 'Step 1 Place Lock on this PDF file ' + p.pdf );
@@ -152,6 +160,7 @@ function s1( p, cb  ) {
     }
   }); 
 }
+
 
 // Check Audit to make sure it has not been recently processed by any other instance of this app
 function s2( p, cb  ) {
@@ -205,8 +214,9 @@ function s6( p, cb  ) {
 function s7( p, cb  ) {
 
   log.d( 'Step 7 Release Lock ' + p.pdf );
+  log.w( 'Step 7 : ' + JSON.stringify( p ) );
 
-  lock.removeContainerLock( p.dbc, p.row, p.hostname, function( err, result ) {
+  lock.removeContainerLock( p.mycn, p.row, p.hostname, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
