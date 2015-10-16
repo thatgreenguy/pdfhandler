@@ -36,7 +36,7 @@ exports.placeLock = function( dbc, record, hostname, cb ) {
     
         if ( err ) {
           log.debug( 'Oracle DB Insert Lock Failure : ' + err.message );
-          return cb( null, 'INUSE' );
+          return cb( err, 'INUSE' );
         }
 
         // No error so Lock in place
@@ -59,8 +59,6 @@ exports.removeContainerLock = function( dbc, record, hostname, cb ) {
     query,
     binds,
     options;
-
-    log.v(JSON.stringify(dbc) );
 
     query = "DELETE FROM testdta.F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
     binds = [];
@@ -91,7 +89,6 @@ exports.removeLock = function( dbc, record, hostname, cb ) {
     query,
     binds,
     options;
-log.v(JSON.stringify(dbc) );
 
     query = "DELETE FROM testdta.F559858 WHERE lkfndfuf2 = '" + jcfndfuf2 + "'";
     binds = [];
