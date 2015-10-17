@@ -7,17 +7,32 @@
 var nodemailer = require( 'nodemailer' ),
   async = require( 'async' ),
   log = require( './logger.js' ),
-  smtpTransport;
+  smtpTransport,
+  smtphost = process.env.MAIL_HOST,
+  smtpport = process.env.MAIL_PORT;
 
 
 // Initialisation
+//
+// Default SMTP Host and PORT if not provided in environment variables
+if ( typeof( smtphost ) === 'undefined' )) 
+{
+  log.w( 'No SMTP Host environment variable "SMTP_HOST" defined - defaulting to 172.31.3.15' )
+  smtphost = '172.31.3.15'
+}
+if ( typeof( smtpport ) === 'undefined' )) 
+{
+  log.w( 'No SMTP Port environment variable "SMTP_PORT" defined - defaulting to 25' )
+  smtpport = 25
+}
+
 // create re-usable transporter object using SMTP transport
+//  host: '172.31.3.15',
+//  port: 25
 smtpTransport = nodemailer.createTransport( "SMTP", {
-  host: '172.31.3.15',
-  port: 25
+  host: smtphost,
+  port: smtpport
 });
-
-
 
 
 //
@@ -80,9 +95,10 @@ function queryJdeEmailConfig( dbCn, jdeJob, postMailCb, reportName, versionName,
   
     if ( err ) {
     
+      // Error trying to read mail config so return to caller with error handle it there
       log.error( 'Query Failed : queryJdeEmailConfig Failed' );
       log.error( err.message );
-      return;
+      return postMailCb( err );
 
     }
     
@@ -101,7 +117,8 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
 
       oracleResultSetClose( dbCn, rsF559890 );
       log.verbose( 'No email configuration found' );
-      
+      return postMailCb( err )      
+
     } else if ( rows.length == 0 ) {
       
       oracleResultSetClose( dbCn, rsF559890 );
@@ -131,8 +148,8 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
 function processEmailConfigEntry( dbCn, jdeJob, postMailCb, rsF559890, record,
   versionName, reportOptions, versionOptions ) {
 
-  log.warn( 'Rptoptions: ' + reportOptions );
-  log.warn( 'Veroptions: ' + versionOptions );
+  log.i( 'Rptoptions: ' + reportOptions );
+  log.i( 'Veroptions: ' + versionOptions );
 
 
   if ( versionName === '*ALL' ) {
@@ -174,14 +191,14 @@ function mergeAllOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOption
 // Otherwise the result is a combination of report and version specific options.
 function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) {
 
-  log.warn( 'reportoptions: ' + reportOptions );
-  log.warn( 'versionoptions: ' + versionOptions );
+  log.i( 'reportoptions: ' + reportOptions );
+  log.i( 'versionoptions: ' + versionOptions );
 
 
   var mailOptions = reportOptions.slice();
 
   // Show array before
-  log.info( 'Before: ' + mailOptions )
+  log.i( 'Before: ' + mailOptions )
 
   // Iterate over Version specific overrides and remove them from report mail options first
   async.each(
@@ -199,7 +216,11 @@ function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) {
 
      // Now add in the version overrides and return final result
      mailOptions = mailOptions.concat( versionOptions );
-     sendMail( jdeJob, mailOptions, postMailCb );     
+    
+    // dont send return results to caller let caller decide if error or options returned and handle appropriately 
+    //sendMail( jdeJob, mailOptions, postMailCb );     
+
+    return postMailCb( null, mailOptions ); 
 
     }   
   );
@@ -217,7 +238,7 @@ function processVersionOverrides( reportOptions, versionOptions, mailOptions, ve
       if ( err ) {
         log.error( 'processVersionOverrides encountered error' );
         log.error( err );
-        return;
+        return cb( err );
       }
     }   
   );
@@ -270,7 +291,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
   // this could be as simple as a TO address as sensible defaults should be provided
   // by this program for any missing config.
   // In order to send an email the minimum required is an EMAIL = 'Y' and a TO address
-  // defaults values will be supplied for rest
+  // following default values will be supplied for rest
 
   var email,
     from = 'noreply@dlink.com',
@@ -284,16 +305,15 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     entry,
     mo = {};
 
-  from = 'noreply@dlink.com';
   subject = 'Dlink JDE Report : ' + jdeJob;
-  text = 'Please find your JDE report attached to this email.'; 
+  text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
 
   
   
   for ( var i = 0; i < mailOptions.length; i++ ) {
 
     entry = mailOptions[ i ];
-    log.warn( entry );
+    log.w( entry );
 
     if ( entry[ 0 ] === 'EMAIL' ) {
       email = entry[ 1 ];
@@ -332,7 +352,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
   }
 
   wrk[ 'filename' ] = jdeJob;
-  wrk[ 'filePath' ] = '/home/pdfprint' + jdeJob;
+  wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob;
   attachments[ 0 ] = wrk;
 
   if ( ! to ) {
@@ -342,14 +362,14 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 
   }
 
-  log.verbose( 'EMAIL: ' + email );
-  log.verbose( 'FROM: ' + from );
-  log.verbose( 'TO: ' + to );
-  log.verbose( 'SUBJECT: ' + subject );
-  log.verbose( 'CC: ' + cc );
-  log.verbose( 'BCC: ' + bcc );
-  log.verbose( 'TEXT: ' + text );
-  log.verbose( 'ATT: ' + attachments );
+  log.d( 'EMAIL: ' + email );
+  log.d( 'FROM: ' + from );
+  log.d( 'TO: ' + to );
+  log.d( 'SUBJECT: ' + subject );
+  log.d( 'CC: ' + cc );
+  log.d( 'BCC: ' + bcc );
+  log.d( 'TEXT: ' + text );
+  log.d( 'ATT: ' + attachments );
 
   mo['from'] = from;
   mo['to'] = to;
@@ -375,7 +395,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
       } else {
 
         log.verbose( "Email sent: " + response.message);
-        postMailCb( null, 'Mail Sent');
+        postMailCb( null, 'SENT');
       }
     });
   } 

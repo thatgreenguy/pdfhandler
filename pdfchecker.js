@@ -16,6 +16,7 @@ var moment = require( 'moment' ),
   odb = require( './common/odb.js' ),
   needlogo = require( './common/needlogo.js' ),
   dologo = require( './common/dologo.js' ),
+  domail = require( './common/domail.js' ),
   audit = require( './common/audit.js' );
   
 
@@ -171,7 +172,7 @@ function constructQuery( statusFrom, statusTo ) {
 // TESTING logo required
 //  query += " AND jpblkk like '115271%' ";
 // TESTING logo NOT required
-//  query += " AND jpblkk = '115285 100331' ";
+  query += " AND jpblkk = '115289 141447' ";
 
 
 

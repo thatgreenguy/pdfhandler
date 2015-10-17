@@ -57,7 +57,7 @@ function invalidConnection( err, pargs ) {
 }
 
 
-// Connection established continue with Logo processing
+// Connection established continue with Mail processing
 function validConnection( cn, p ) {
 
   p.mycn = cn;
@@ -110,7 +110,51 @@ function mailReport( p, cb  ) {
 
   log.v( p.pdf + ' Step 2 - Check Mail Config for Report/Version and Email Report if required ' );
 
-  domail.prepMail( p.pdf, mailOptions, function( err, result ) {
+  // First fetch Mail Options for this Report and Version
+  mail.prepMail( p.mycn, p.pdf, function( err, result ) {
+
+    if ( err ) {
+
+      log.v( ' prepMail: Error ' + err );
+      log.w( p.pdf + ' No Mail Configuration found - Nothing Sent ' );
+
+      // Unable to fetch mail configuration either None or real error
+      p.mailSent = 'N'
+      p.mailReason = 'Failed to get mail config'
+      return cb( null )
+
+    } else {
+
+      log.v( ' prepMail: OK ' + result );
+
+      log.i( p.pdf + ' Mail Configuration found - Checking ' );
+      for ( var key in result ) {
+        if ( result.hasOwnProperty( key )) {
+          log.i( p.pdf + ' ' + key + ' : ' + result[ key ]); 
+        }
+      }
+
+      if ( result[ EMAIL ] !== 'Y' ) {
+
+      // If error trying to get mail config - note it for audit log but continue as normal
+      p.mailSent = 'N'
+      p.mailReason = 'Failed to get mail config'
+      return cb( null )
+
+
+      }
+
+
+
+    }
+  });
+
+}
+
+
+// temporary.....
+function tempporary() {
+  mail.prepMail( p.pdf, mailOptions, function( err, result ) {
     if ( err ) {
 
       log.i( 'doMail: Error ' + err );
@@ -123,10 +167,7 @@ function mailReport( p, cb  ) {
 
     }
   }); 
-  
 }
-
-
 
 // Create Audit record signalling PDF has been processed for Mailing
 function writeAuditEntry( p, cb  ) {
@@ -147,7 +188,7 @@ function writeAuditEntry( p, cb  ) {
 // E.g. When Mail processing done change Pdf Queue entry status from say 200 to 999 (Complete)
 function updateProcessQueueStatus( p, cb  ) {
 
-  log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Logo done ' );
+  log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Mailing done ' );
   audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
     if ( err ) {
       return cb( err )
@@ -184,7 +225,7 @@ function finalStep( p  ) {
            p.cbWhenDone( err ); 
          } else {
            log.d( 'DB Resource connection released - Finished so return' );
-           log.v( p.pdf + ' finalStep - Logo Processing Complete ' );
+           log.v( p.pdf + ' finalStep - Mail Processing Complete ' );
            p.cbWhenDone( null ); 
          }
        });
