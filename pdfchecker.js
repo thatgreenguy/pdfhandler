@@ -172,7 +172,7 @@ function constructQuery( statusFrom, statusTo ) {
 // TESTING logo required
 //  query += " AND jpblkk like '115271%' ";
 // TESTING logo NOT required
-  query += " AND jpblkk = '115289 141447' ";
+//  query += " AND jpblkk = '115289 141447' ";
 
 
 

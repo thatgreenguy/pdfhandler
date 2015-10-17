@@ -64,7 +64,7 @@ exports.updatePdfQueueStatus = function( dbc, pdfjob, genkey, ctrid, status, cb 
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  query = "UPDATE testdta.F559811 SET jpyexpst = '200' WHERE jpfndfuf2 = '" + pdfjob + "'";
+  query = "UPDATE testdta.F559811 SET jpyexpst = '" + status + "' WHERE jpfndfuf2 = '" + pdfjob + "'";
   binds = [ ]
   options = { autoCommit: true }
 

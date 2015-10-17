@@ -17,7 +17,6 @@ var oracledb = require( 'oracledb' ),
 
 
 module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
-
   var pargs;
 
   pargs = { 'dbp': dbp, 
@@ -67,9 +66,9 @@ function validConnection( cn, p ) {
     function( next ) { getMailConfig( p, next )},
     function( next ) { copyPdf( p, next )},
     function( next ) { mailReport( p, next )}, 
-    function( next ) { removePdfCopy( p, next )} 
-//    function( next ) { updateProcessQueueStatus( p, next )} 
+    function( next ) { removePdfCopy( p, next )}, 
 //    function( next ) { writeAuditEntry( p, next )}
+    function( next ) { updateProcessQueueStatus( p, next )} 
 
   ], function( err, resp ) {
 
@@ -159,6 +158,7 @@ function getMailConfig( p, cb  ) {
       } else {
 
         // Save mail options and continue to next step
+        p.mailoptions = result
         return cb( null )
 
       }
@@ -182,7 +182,7 @@ function copyPdf( p, cb  ) {
 
     log.v( p.pdf + ' Step 3 - Create .pdf version of report for mailing' );
 
-    cmd = "xxzzcp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+    cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
 
     log.d( p.pdf + " - Copy report to be mailed to work directory and give it .pdf extension" );
     log.d( cmd );
@@ -199,7 +199,7 @@ function copyPdf( p, cb  ) {
 }
 
 
-// Email Report if EMAIL=Y 
+// Email Report if mailing is not disabled 
 function mailReport( p, cb ) {
 
   log.v( JSON.stringify( p ) );
@@ -212,7 +212,7 @@ function mailReport( p, cb ) {
   } else {
 
     log.v( p.pdf + ' Step 4 - Emailing Report' );
-    mail.prepMail( p.pdf, p.mailoptions, function( err, result ) {
+    mail.doMail( p.pdf, p.mailoptions, function( err, result ) {
 
       if ( err ) {
 
@@ -236,7 +236,7 @@ function removePdfCopy( p, cb  ) {
 
   var cmd;
 
-  if ( p.mailoptions[ 'EMAIL' ] !== 'Y' ) {
+  if ( p.mailenabled !== 'Y' ) {
 
     log.v( p.pdf + ' Step 5 - Skip as Report Mailing has been disabled' );
     return cb( null )
@@ -245,7 +245,7 @@ function removePdfCopy( p, cb  ) {
 
     log.v( p.pdf + ' Step 5 - Remove temporary .pdf file once mail sent' );
   
-    cmd = "xxzzcp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+    cmd = "rm /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
 
     log.d( cmd );
 

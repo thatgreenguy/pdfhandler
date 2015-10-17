@@ -22,7 +22,7 @@ var log = require( './common/logger.js' ),
   audit = require( './common/audit.js' ),
   pdfchecker = require( './pdfchecker.js' ),
   poolRetryInterval = 30000,
-  pollInterval = 2000,
+  pollInterval = process.env.POLL_INTERVAL,
   dbp = null,
   hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
@@ -49,6 +49,7 @@ startQueueProcessor();
 function startQueueProcessor() {
 
   if ( typeof( processInfo ) === 'undefined' ) processInfo = 'Process ' + processFromStatus + ' to ' + processToStatus
+  if ( typeof( pollInterval ) === 'undefined' ) pollInterval = 2000
 
   log.i( '' );
   log.i( '----- DLINK JDE PDF Queue Processor Started - ' + processInfo ); 

@@ -351,8 +351,8 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 
   }
 
-  wrk[ 'filename' ] = jdeJob;
-  wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob;
+  wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
+  wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
   attachments[ 0 ] = wrk;
 
   if ( ! to ) {
@@ -459,9 +459,3 @@ module.exports.testMail = function( dbCn, jdeJob, cb ) {
   module.exports.sendMail( mailOptions, cb );
 
 }
-
-
- 
-
-
-
