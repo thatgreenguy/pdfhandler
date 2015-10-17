@@ -63,10 +63,13 @@ function validConnection( cn, p ) {
   p.mycn = cn;
 
   async.series([
-    function( next ) { placeLock( p, next ) }, 
-    function( next ) { mailReport( p, next ) } 
-//    function( next ) { updateProcessQueueStatus( p, next ) } 
-//    function( next ) { writeAuditEntry( p, next ) }
+    function( next ) { placeLock( p, next )}, 
+    function( next ) { getMailConfig( p, next )},
+    function( next ) { copyPdf( p, next )},
+    function( next ) { mailReport( p, next )}, 
+    function( next ) { removePdfCopy( p, next )} 
+//    function( next ) { updateProcessQueueStatus( p, next )} 
+//    function( next ) { writeAuditEntry( p, next )}
 
   ], function( err, resp ) {
 
@@ -102,13 +105,17 @@ function placeLock( p, cb  ) {
 
 
 // Fetch the Email configuration for this Report and Version
-function mailReport( p, cb  ) {
+function getMailConfig( p, cb  ) {
 
   var pdfInput,
     pdfOutput,
-    cmd;
+    cmd,
+    option;
 
-  log.v( p.pdf + ' Step 2 - Check Mail Config for Report/Version and Email Report if required ' );
+  // Mail flag initially set to 'No' set from actual mail config options below
+  p.mailenabled = 'N';
+
+  log.v( p.pdf + ' Step 2 - fetch Mail Configuration Options for this Report/Version ' );
 
   // First fetch Mail Options for this Report and Version
   mail.prepMail( p.mycn, p.pdf, function( err, result ) {
@@ -118,56 +125,145 @@ function mailReport( p, cb  ) {
       log.v( ' prepMail: Error ' + err );
       log.w( p.pdf + ' No Mail Configuration found - Nothing Sent ' );
 
-      // Unable to fetch mail configuration either None or real error
+      // If error returned when trying to get email configuration options for this report then 
+      // return with error and retry next run
       p.mailSent = 'N'
       p.mailReason = 'Failed to get mail config'
-      return cb( null )
+      return cb( err )
 
     } else {
 
       log.v( ' prepMail: OK ' + result );
-
       log.i( p.pdf + ' Mail Configuration found - Checking ' );
       for ( var key in result ) {
         if ( result.hasOwnProperty( key )) {
-          log.i( p.pdf + ' ' + key + ' : ' + result[ key ]); 
+
+          log.i( p.pdf + ' ' + key + ' : ' + result[ key ]);
+
+          option = result[ key ]
+
+          if ( option[ 0 ] === 'EMAIL' ) {
+            p.mailenabled = option[ 1 ]
+          }        
         }
       }
+     
+      if ( p.mailenabled !== 'Y' ) {
 
-      if ( result[ EMAIL ] !== 'Y' ) {
+        // Email configuration may exist for report but could be disabled EMAIL=N
+        // If disabled dont send email but continue without error so status is updated to complete 
+        p.mailSent = 'N'
+        p.mailReason = 'Mail Configuration options exists but Email report is disabled'
+        return cb( null )
 
-      // If error trying to get mail config - note it for audit log but continue as normal
-      p.mailSent = 'N'
-      p.mailReason = 'Failed to get mail config'
-      return cb( null )
+      } else {
 
+        // Save mail options and continue to next step
+        return cb( null )
 
       }
-
-
-
     }
   });
 
 }
 
+// Make a copy of the Report and give it a .pdf extension so it is handled correctly by mail clients
+function copyPdf( p, cb  ) {
 
-// temporary.....
-function tempporary() {
-  mail.prepMail( p.pdf, mailOptions, function( err, result ) {
-    if ( err ) {
+  var cmd;
 
-      log.i( 'doMail: Error ' + err );
-      return cb( err )
+  log.v( JSON.stringify(p) );
 
-    } else {
+  if ( p.mailenabled !== 'Y' ) {
 
-      log.i( 'doMail: OK ' + result );
-      return cb( null )
+    log.v( p.pdf + ' Step 3 - Skip as Report Mailing has been disabled' ); 
 
-    }
-  }); 
+  } else {  
+
+    log.v( p.pdf + ' Step 3 - Create .pdf version of report for mailing' );
+
+    cmd = "xxzzcp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+
+    log.d( p.pdf + " - Copy report to be mailed to work directory and give it .pdf extension" );
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err ) {
+        log.d( ' ERROR: ' + err );
+        return cb( err, stdout + stderr + " - Failed" );
+      } else {
+        return cb( null, stdout + ' ' + stderr + " - Done" );
+      }
+    });
+  }
 }
+
+
+// Email Report if EMAIL=Y 
+function mailReport( p, cb ) {
+
+  log.v( JSON.stringify( p ) );
+
+  if ( p.mailenabled !== 'Y' ) {
+
+    log.v( p.pdf + ' Step 4 - Skip as Report Mailing has been disabled' );
+    return cb( null )
+
+  } else {
+
+    log.v( p.pdf + ' Step 4 - Emailing Report' );
+    mail.prepMail( p.pdf, p.mailoptions, function( err, result ) {
+
+      if ( err ) {
+
+        log.i( 'doMail: Error ' + err );
+        return cb( err )
+
+      } else {
+
+        log.i( 'doMail: OK ' + result );
+        return cb( null )
+
+      }
+    }); 
+  }
+}
+
+
+
+// After report emailed delete temporary .pdf file in work firectory
+function removePdfCopy( p, cb  ) {
+
+  var cmd;
+
+  if ( p.mailoptions[ 'EMAIL' ] !== 'Y' ) {
+
+    log.v( p.pdf + ' Step 5 - Skip as Report Mailing has been disabled' );
+    return cb( null )
+
+  } else {
+
+    log.v( p.pdf + ' Step 5 - Remove temporary .pdf file once mail sent' );
+  
+    cmd = "xxzzcp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err ) {
+
+        log.d( ' ERROR: ' + err );
+        return cb( err, stdout + stderr + " - Failed" );
+
+      } else {
+
+        return cb( null, stdout + ' ' + stderr + " - Done" );
+
+      }
+    });
+  }
+}
+
 
 // Create Audit record signalling PDF has been processed for Mailing
 function writeAuditEntry( p, cb  ) {
