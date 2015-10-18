@@ -14,35 +14,38 @@
 
 
 var log = require( './common/logger.js' ),
-//  ondeath = require( 'death' )({ uncaughtException: true }),
-  ondeath = require( 'death' ),
+  ondeath = require( 'death' )({ uncaughtException: true }),
   moment = require( 'moment' ),
   odb = require( './common/odb.js' ),
   mounts = require( './common/mounts.js' ),
   audit = require( './common/audit.js' ),
   pdfchecker = require( './pdfchecker.js' ),
   poolRetryInterval = 30000,
-  pollInterval = process.env.POLL_INTERVAL,
+  pollInterval = process.env.PROCESS_POLLINTERVAL,
   dbp = null,
   hostname = process.env.HOSTNAME,
   processInfo = process.env.PROCESS_INFO,
   processFromStatus = process.env.PROCESS_STATUS_FROM,
-  processToStatus = process.env.PROCESS_STATUS_TO;
+  processToStatus = process.env.PROCESS_STATUS_TO,
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
 
 
 startQueueProcessor();
 
 
 // Functions
-//
-// startMonitorProcess() 
+// startQueueProcessor()
 // establishPool() 
 // processPool( err, pool ) 
-// calculateTimeOffset( dbp ) 
-// determineMonitorStartDateTime( dbp ) 
-// pollJdePdfQueue( dbp ) 
-// scheduleNextMonitorProcess( dbp ) 
+// performPolledProcess() 
+// performPostRemoteMountChecks( err, data ) 
+// scheduleNextPolledProcess() 
+// reconnectToJde( err ) 
+// performPostEstablishRemoteMounts( err, data ) 
 // endMonitorProcess( signal, err ) 
+// releaseOracleResources( suggestedExitCode ) 
+//
 //
 
 // Do any startup / initialisation stuff
@@ -53,6 +56,13 @@ function startQueueProcessor() {
 
   log.i( '' );
   log.i( '----- DLINK JDE PDF Queue Processor Started - ' + processInfo ); 
+  log.i( '' ); 
+  log.i( 'JDE Environment monitored is ' + jdeEnv + ' and JDE database in effect is ' + jdeEnvDb );
+  log.i( '' ); 
+  log.i( 'Process Queued PDF entries at status ' + processFromStatus ); 
+  log.i( 'Once processed move Queued PDF files to status ' + processToStatus ); 
+  log.i( 'Polling Interval set at ' + pollInterval);
+
 
   // Handle process exit from DOCKER STOP, system interrupts, uncaughtexceptions or CTRL-C 
   ondeath( endMonitorProcess );
