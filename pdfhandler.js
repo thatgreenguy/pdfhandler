@@ -57,7 +57,8 @@ function startQueueProcessor() {
   log.i( '' );
   log.i( '----- DLINK JDE PDF Queue Processor Started - ' + processInfo ); 
   log.i( '' ); 
-  log.i( 'JDE Environment monitored is ' + jdeEnv + ' and JDE database in effect is ' + jdeEnvDb );
+  log.i( 'JDE Environment : ' + jdeEnv );
+  log.i( 'JDE Database : ' + jdeEnvDb );
   log.i( '' ); 
   log.i( 'Process Queued PDF entries at status ' + processFromStatus ); 
   log.i( 'Once processed move Queued PDF files to status ' + processToStatus ); 
