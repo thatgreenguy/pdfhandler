@@ -78,13 +78,13 @@ module.exports.queryJdePdfProcessQueue = function( dbp, hostname, statusFrom, st
         // Otherwise punch warning as not sure what to do with this record - check env variable settings
         if ( row[ 0 ][ 1 ] === '100' ) {
 
-          dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, cb );
+          dologo.doLogo( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusFrom, statusTo, cb );
 
         } else {
   
           if ( row[ 0 ][ 1 ] === '200' ) {
 
-            domail.doMail( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusTo, cb );
+            domail.doMail( dbp, dbc, hostname, row[ 0 ], row[ 2 ], row[ 3 ], statusFrom, statusTo, cb );
 
           } else {
 
@@ -172,7 +172,7 @@ function constructQuery( statusFrom, statusTo ) {
   query += " WHERE jpyexpst = " + statusFrom;
 
 //test
-  query += " AND jpblkk like '%10021%'";
+  query += " AND jpblkk like '%30029%'";
 
   log.d( query );
 

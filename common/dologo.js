@@ -43,7 +43,7 @@ var oracledb = require( 'oracledb' ),
 //
 
 
-module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
+module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
 
   var pargs;
 
@@ -54,6 +54,7 @@ module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, sta
           'pdf': row[ 0 ],
           'jdedate': jdedate,
           'jdetime': jdetime,
+          'statusFrom': statusFrom,
           'statusTo': statusTo,
           'cbWhenDone': cbWhenDone };
 
@@ -178,7 +179,7 @@ function auditLogCopyPdf( p, cb  ) {
 
   comments = 'LOGO | STEP1 | CopyPdf | Original JDE PDF copied to work directory'; 
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -227,7 +228,7 @@ function auditLogLogoApply( p, cb  ) {
 
   comments = 'LOGO | STEP2 | ApplyLogo | Dlink Logo added to working copy of Original JDE PDF'; 
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -276,7 +277,7 @@ function auditLogJdePdfReplaced( p, cb  ) {
 
   comments = 'LOGO | STEP3 | JdePdfReplaced | JDE PrintQueue pdf replaced with Logo version from work directory'; 
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -310,9 +311,9 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'LOGO | STEP4 | QueuedPdfStatusChanged | COMPLETED '; 
+  comments = 'LOGO | STEP4 | QueuedPdfStatusChanged | LOGO COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
