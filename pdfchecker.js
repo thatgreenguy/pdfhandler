@@ -1,15 +1,15 @@
-// pdfchecker.js  : Check Jde Job Control table looking for any recently generated Pdf files that are configured 
-//                : in JDE for some kind of post Pdf processing when found add them to process Queue.
+// pdfchecker.js  : Performs a query check on the JDE PDF Process Queue and calls the appropriate handler program 
+//                : to add Logos or Mail the JDE report.
 // Author         : Paul Green
 // Dated          : 2015-09-21
 //
 // Synopsis
 // --------
 //
-// Called periodically by pdfmonitor.js
-// It checks the Jde Job Control Audit table looking for recently completed UBE reports.
-// New PDF files are cross checked against JDE email configuration and if some kind of post pdf processing is required
-// e.g. Logos or mailing then the Jde Job is added to the F559811 DLINK Post PDF Handling Queue
+// Called periodically by pdfmonitor.js depending on polling interval
+// It checks the Jde PDF Process Queue (F559811) for PDF files queued waiting for post Pdf processing
+// such as Logo stamping or report mailing and calls the appropriate handler program.
+
 
 var moment = require( 'moment' ),
   log = require( './common/logger.js' ),
@@ -17,17 +17,20 @@ var moment = require( 'moment' ),
   needlogo = require( './common/needlogo.js' ),
   dologo = require( './common/dologo.js' ),
   domail = require( './common/domail.js' ),
-  audit = require( './common/audit.js' );
+  hostname = process.env.HOSTNAME,
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
   
 
 // Functions -
 //
-// module.exports.queryJdeJobControl = function(  dbp, monitorFromDate, monitorFromTime, pollInterval, timeOffset, cb )
+// module.exports.queryJdePdfProcessQueue( dbp, hostname, statusFrom, statusTo, cb )
+// constructQuery( statusFrom, statusTo )
 
 
 // Grab a connection from the Pool, query the database for the latest Queue entry
 // release the connection back to the pool and finally return to caller with date/time of last entry
-module.exports.queryJdePdfProcessQueue = function(  dbp, hostname, statusFrom, statusTo, cb ) {
+module.exports.queryJdePdfProcessQueue = function( dbp, hostname, statusFrom, statusTo, cb ) {
 
   var response = {},
   cn = null,
@@ -166,15 +169,8 @@ function constructQuery( statusFrom, statusTo ) {
 
   // Query F559811 by status codes to retrieve a list of PDF that require processing
 
-  query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM testdta.F559811 ";
+  query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + "F559811 ";
   query += " WHERE jpyexpst = " + statusFrom;
-
-// TESTING logo required
-//  query += " AND jpblkk like '115271%' ";
-// TESTING logo NOT required
-//  query += " AND jpblkk = '115289 141447' ";
-
-
 
   log.d( query );
 

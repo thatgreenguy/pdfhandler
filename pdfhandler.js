@@ -1,4 +1,4 @@
-// pdfhandler.js  : Apply Dlink logo images to select JDE generated Pdf files   
+// pdfhandler.js  : Monitor the JDE PDF process Queue handling post Pdf processing requirements such as Logos or Mailing   
 // Author         : Paul Green
 // Date           : 2015-09-10
 //
@@ -6,9 +6,9 @@
 // --------
 //
 // Establish remote mount connectivity via sshfs to the Jde PrintQueue directory on the (AIX) Enterprise server
-// Perform high frequency polling of the Oracle (JDE) table which holds information on Jde UBE jobs
-// When detecting new JDE PDF files that have been configured (in Jde) for post PDF processing e.g. Logos, Email 
-// then add the PDF file to the JDE Process Queue to be picked up and handled by the appropriate handler 
+// Perform high frequency polling of the Oracle (JDE) table which holds PDF file entries queued for processing
+// When detecting new JDE PDF files that are waiting for Post PDF processing e.g. Logos, Email 
+// then call the appropriate handler to add logos or email the report 
 
 
 var log = require( './common/logger.js' ),
@@ -16,7 +16,6 @@ var log = require( './common/logger.js' ),
   moment = require( 'moment' ),
   odb = require( './common/odb.js' ),
   mounts = require( './common/mounts.js' ),
-  audit = require( './common/audit.js' ),
   pdfchecker = require( './pdfchecker.js' ),
   poolRetryInterval = 30000,
   pollInterval = process.env.PROCESS_POLLINTERVAL,

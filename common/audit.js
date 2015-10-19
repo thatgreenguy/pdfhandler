@@ -3,17 +3,31 @@
 // Author		: Paul Green
 // Dated		: 2015-08-03
 //
-// Application maintains a simple audit log file within Jde which is used for informational purposes and by the
-// application itself to determine the last Pdf processed - determines date and time to run query checks from. 
+// Common mostly Audit related functions. Application writes detailed audit logs - see /logs but also creates basic informational
+// auditing within JDE showing application startup and PDF files processed
+// JDE date and time functions and time adjustment used for handling time offset between AIX server and application server.
   
 
 var oracledb = require( 'oracledb' ),
   log = require( './logger' ),
-  moment = require( 'moment' );
+  moment = require( 'moment' ),
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
+
+
+// Functions -
+// 
+// exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, cb ) 
+// exports.updatePdfQueueStatus = function( dbc, pdfjob, genkey, ctrid, status, cb ) 
+// exports.createTimestamp = function( dt, dateSep, timeSep, padChar ) 
+// exports.getJdeJulianDate = function( dt ) 
+// exports.getJdeAuditTime = function( dt, padChar ) 
+// exports.adjustTimestampByMinutes = function( timestamp, mins ) 
+//
 
 
 // Insert new Audit entry into the JDE audit log file.
-exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, cb ) {
+exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, comments, cb ) {
 
   var dt,
   timestamp,
@@ -28,8 +42,8 @@ exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, cb ) {
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  query = "INSERT INTO testdta.F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
-  binds = [ timestamp, pdfjob, genkey, ctrid, status, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
+  query = "INSERT INTO " + jdeEnvDb.trim() + "F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :pacomments, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
+  binds = [ timestamp, pdfjob, genkey, ctrid, status, comments, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
   options = { autoCommit: true }
 
   log.d( query );
@@ -64,7 +78,7 @@ exports.updatePdfQueueStatus = function( dbc, pdfjob, genkey, ctrid, status, cb 
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  query = "UPDATE testdta.F559811 SET jpyexpst = '" + status + "' WHERE jpfndfuf2 = '" + pdfjob + "'";
+  query = "UPDATE " + jdeEnvDb.trim() + "F559811 SET jpyexpst = '" + status + "' WHERE jpfndfuf2 = '" + pdfjob + "'";
   binds = [ ]
   options = { autoCommit: true }
 
