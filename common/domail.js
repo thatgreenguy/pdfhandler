@@ -46,7 +46,7 @@ var oracledb = require( 'oracledb' ),
 
 
 // Called when Queued PDF file is at status '200' waiting to be E-mailed
-module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
+module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
   var pargs;
 
   pargs = { 'dbp': dbp, 
@@ -56,6 +56,7 @@ module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, sta
           'pdf': row[ 0 ],
           'jdedate': jdedate,
           'jdetime': jdetime,
+          'statusFrom': statusFrom,
           'statusTo': statusTo,
           'cbWhenDone': cbWhenDone };
 
@@ -246,7 +247,7 @@ function auditLogCopyPdf( p, cb  ) {
     comments = 'MAIL | STEP1 | CopyPdf | .pdf attachment copy made in working directory'; 
   }
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -301,7 +302,7 @@ function auditLogMailReport( p, cb  ) {
     comments = 'MAIL | STEP2 | mailReport | SENT - Mail Server indicates Mail Sent'; 
   }
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -359,7 +360,7 @@ function auditLogRemovePdfCopy( p, cb  ) {
     comments = 'MAIL | STEP3 | RemovePdfCopy | .pdf Attachment Copy removed from work directory'; 
   }
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -393,9 +394,9 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'MAIL | STEP4 | QueuedPdfStatusChanged | COMPLETED'; 
+  comments = 'MAIL | STEP4 | QueuedPdfStatusChanged | MAIL COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
