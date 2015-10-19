@@ -7,10 +7,8 @@
 //
 // Establish remote mount connectivity via sshfs to the Jde PrintQueue directory on the (AIX) Enterprise server
 // Perform high frequency polling of the Oracle (JDE) table which holds information on Jde UBE jobs
-// When detecting new JDE PDF files that have been configured (in Jde) to receive logo images - for example 
-// Print Invoice - Copy the file, add logos to each page then replace the original Jde generated Pdf with the new 
-// version which includes Dlink logos.
-
+// When detecting new JDE PDF files that have been configured (in Jde) for post PDF processing e.g. Logos, Email 
+// then add the PDF file to the JDE Process Queue to be picked up and handled by the appropriate handler 
 
 
 var log = require( './common/logger.js' ),
@@ -35,6 +33,7 @@ startQueueProcessor();
 
 
 // Functions
+//
 // startQueueProcessor()
 // establishPool() 
 // processPool( err, pool ) 
@@ -45,8 +44,7 @@ startQueueProcessor();
 // performPostEstablishRemoteMounts( err, data ) 
 // endMonitorProcess( signal, err ) 
 // releaseOracleResources( suggestedExitCode ) 
-//
-//
+
 
 // Do any startup / initialisation stuff
 function startQueueProcessor() {
@@ -60,10 +58,9 @@ function startQueueProcessor() {
   log.i( 'JDE Environment : ' + jdeEnv );
   log.i( 'JDE Database : ' + jdeEnvDb );
   log.i( '' ); 
-  log.i( 'Process Queued PDF entries at status ' + processFromStatus ); 
-  log.i( 'Once processed move Queued PDF files to status ' + processToStatus ); 
-  log.i( 'Polling Interval set at ' + pollInterval);
-
+  log.i( 'Polling Interval : ' + pollInterval);
+  log.i( '' ); 
+  log.i( 'Pick up Queued PDF files at status ' + processFromStatus + ' - apply Logo - move to status ' + processToStatus ); 
 
   // Handle process exit from DOCKER STOP, system interrupts, uncaughtexceptions or CTRL-C 
   ondeath( endMonitorProcess );
@@ -143,8 +140,8 @@ function scheduleNextPolledProcess() {
 // Problem with remote mounts to jde so attempt to reconnect 
 function reconnectToJde( err ) {
 
-    log.debug( 'Error data: ' +  err );
-    log.warn( 'Issue with Remote mounts to JDE - Attempting to reconnect.' );
+    log.d( 'Error data: ' +  err );
+    log.w( 'Issue with Remote mounts to JDE - Attempting to reconnect.' );
 
     mounts.establishRemoteMounts( performPostEstablishRemoteMounts );
 
@@ -157,15 +154,15 @@ function performPostEstablishRemoteMounts( err, data ) {
   if ( err ) {
 
     // Unable to reconnect to Jde at the moment so pause and retry shortly
-    log.warn( '' );
-    log.warn( 'Unable to re-establish remote mounts to Jde will pause and retry' );
-    log.warn( '' );
+    log.w( '' );
+    log.w( 'Unable to re-establish remote mounts to Jde will pause and retry' );
+    log.w( '' );
     setTimeout( performPolledProcess, pollInterval );
 
   } else {
 
     // Remote mounts okay so go ahead and process, checking for new Pdf's etc
-    log.verbose( 'Remote mounts to Jde re-established - will continue normally')
+    log.v( 'Remote mounts to Jde re-established - will continue normally')
     pdfchecker.queryJdePdfProcessQueue( dbp, hostname, processFromStatus, processToStatus, scheduleNextPolledProcess );
 
   }
