@@ -1,7 +1,16 @@
-// domail.js 
+// Module		: domail.js
+// Description		: Handler that sends JDE PDF files as report attachments.
+// Author		: Paul Green
+// Dated		: 2015-10-19
 //
-// 
-//
+// Called when a Queued PDF entry is waiting at Mail Status '200' 
+// Gain exclusive use of the PDF via lock, fetch mail configuration for this particular JDE report/version
+// copy original PDF to work directory and give it a proper .pdf extension so handled correctly by 
+// mail clients, rename to .pdf, apply Dlink Logo to each page
+// replace original JDE PDF in PrintQueue with Logo enhanced copy, move the Queued PDF entry to next status
+// then release lock. 
+// Audit log entries are written for each step to JDE Audit log table (1) to provide feedback/visibility  of this 
+// application processing to the JDE team and (2) to allow use of audit log for recovery processing if required
 
 
 var oracledb = require( 'oracledb' ),
@@ -13,9 +22,30 @@ var oracledb = require( 'oracledb' ),
   audit = require( './audit.js' ),
   mail = require( './mail.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
-  dirLocalJdePdf = process.env.DIR_SHAREDDATA;
+  dirLocalJdePdf = process.env.DIR_SHAREDDATA,
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
 
 
+// Functions - 
+//
+// module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone )
+// function invalidConnection( err, pargs )
+// function validConnection( cn, p )
+// function placeLock( p, cb  )
+// function getMailConfig( p, cb  )
+// function copyPdf( p, cb  )
+// function auditLogCopyPdf( p, cb  )
+// function mailReport( p, cb )
+// function auditLogMailReport( p, cb  ) 
+// function removePdfCopy( p, cb  )
+// function auditLogRemovePdfCopy( p, cb  )
+// function updateProcessQueueStatus( p, cb  )
+// function auditLogQueuedPdfStatusChanged( p, cb  )
+// function finalStep( p  )
+
+
+// Called when Queued PDF file is at status '200' waiting to be E-mailed
 module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
   var pargs;
 
@@ -65,10 +95,13 @@ function validConnection( cn, p ) {
     function( next ) { placeLock( p, next )}, 
     function( next ) { getMailConfig( p, next )},
     function( next ) { copyPdf( p, next )},
+    function( next ) { auditLogCopyPdf( p, next )},
     function( next ) { mailReport( p, next )}, 
+    function( next ) { auditLogMailReport( p, next )}, 
     function( next ) { removePdfCopy( p, next )}, 
-//    function( next ) { writeAuditEntry( p, next )}
-    function( next ) { updateProcessQueueStatus( p, next )} 
+    function( next ) { auditLogRemovePdfCopy( p, next )},
+    function( next ) { updateProcessQueueStatus( p, next )},
+    function( next ) { auditLogQueuedPdfStatusChanged( p, next )}
 
   ], function( err, resp ) {
 
@@ -177,6 +210,7 @@ function copyPdf( p, cb  ) {
   if ( p.mailenabled !== 'Y' ) {
 
     log.v( p.pdf + ' Step 3 - Skip as Report Mailing has been disabled' ); 
+    return cb( null );
 
   } else {  
 
@@ -196,6 +230,30 @@ function copyPdf( p, cb  ) {
       }
     });
   }
+}
+
+
+// Create Audit record signalling PDF Copy made for Mail sending has been done
+function auditLogCopyPdf( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
+
+  if ( p.mailenabled !== 'Y' ) {
+    comments = 'MAIL processing - CopyPdf - Config indicates Email currently Disabled for Report / Version'; 
+  } else {
+    comments = 'MAIL processing - CopyPdf - .pdf attachment copy made in working directory'; 
+  }
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
 }
 
 
@@ -229,6 +287,29 @@ function mailReport( p, cb ) {
   }
 }
 
+
+// Create Audit record signalling PDF Copy made for Mail sending has been removed / cleaned up
+function auditLogMailReport( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
+
+  if ( p.mailenabled !== 'Y' ) {
+    comments = 'MAIL processing - mailReport - Config indicates Email currently Disabled for Report / Version'; 
+  } else {
+    comments = 'MAIL processing - mailReport - Mail Server indicates Mail Sent'; 
+  }
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
 
 
 // After report emailed delete temporary .pdf file in work firectory
@@ -265,11 +346,20 @@ function removePdfCopy( p, cb  ) {
 }
 
 
-// Create Audit record signalling PDF has been processed for Mailing
-function writeAuditEntry( p, cb  ) {
+// Create Audit record signalling PDF Copy made for Mail sending has been removed / cleaned up
+function auditLogRemovePdfCopy( p, cb  ) {
 
-  log.v( p.pdf + ' Step 6 - Write Audit Entry ' );
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+  var comments;
+
+  log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
+
+  if ( p.mailenabled !== 'Y' ) {
+    comments = 'MAIL processing - mailReport - Config indicates Email currently Disabled for Report / Version'; 
+  } else {
+    comments = 'MAIL processing - mailReport - PDF Copy made for mailing removed from work directory'; 
+  }
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -284,8 +374,28 @@ function writeAuditEntry( p, cb  ) {
 // E.g. When Mail processing done change Pdf Queue entry status from say 200 to 999 (Complete)
 function updateProcessQueueStatus( p, cb  ) {
 
-  log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Mailing done ' );
+  log.v( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Mailing done ' );
   audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
+
+
+// Create Audit record signalling PDF has been processed for Logo
+function auditLogQueuedPdfStatusChanged( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
+
+  comments = 'MAIL processing - QueuedPdfStatusChanged - Mail processing COMPLETE'; 
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {

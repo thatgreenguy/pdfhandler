@@ -3,10 +3,9 @@
 // Author		: Paul Green
 // Dated		: 2015-09-08
 //
-// When docker application starts up remote mounts need to be established and although fairly persistent with
+// When docker application starts up, remote mounts need to be established and although fairly persistent with
 // combination of serverkeepalive options, reconnect options and workaround options they do occassionaly drop 
-// so main controlling appication tests the connections are okay and reconnects 
-// if necessary before processing any Pdf files.
+// so main controlling application tests the connections are okay and reconnects if necessary before processing any Pdf files.
 
 
 var async = require( 'async' ),
@@ -22,6 +21,19 @@ var async = require( 'async' ),
   sshfsServerKeepaliveSeconds = 30;
 
 
+// Functions -
+//
+// module.exports.checkRemoteMounts = function( callback )
+// module.exports.establishRemoteMounts = function( callback ) 
+// function mountJdeQueue( cb) 
+// function mountSharedWorkDir( cb) 
+// function createSharedWorkDir( cb)
+// function unmountJdeQueue( cb ) 
+// function unmountSharedWorkDir( cb )
+// function checkJdeQueueMounted( cb)
+// function checkWorkDirMounted( cb) 
+//
+
 
 // Check mounts in place - once established they should remain semi-permanent
 // Establish or re-establish mount directories to JDE Enterprise server on AIX.
@@ -32,10 +44,10 @@ module.exports.checkRemoteMounts = function( callback ) {
     function ( cb ) { createSharedWorkDir( cb ) } 	
     ], function( err, results ) {
          if ( err ) {
-           log.warn( 'Problem with remote mounts - attempting auto recovery' );
+           log.w( 'Problem with remote mounts - attempting auto recovery' );
 	   callback( err, 'Remote mount check failed' );
          } else {
-           log.debug( 'Remote mounts okay' );
+           log.d( 'Remote mounts okay' );
            callback( null, 'Remote mount(s) check okay' );  
          }
        }
@@ -53,10 +65,10 @@ module.exports.establishRemoteMounts = function( callback ) {
     function ( cb ) { createSharedWorkDir( cb ) } 	
     ], function( err, results ) {
          if ( err ) {
-           log.error( 'Unable to establish Remote mounts to AIX (JDE Enterprise Server)' );
+           log.e( 'Unable to establish Remote mounts to AIX (JDE Enterprise Server)' );
            callback( err, 'Remote mount failed' );
          } else {
-           log.info( 'Remote mounts established' );
+           log.i( 'Remote mounts established' );
            callback( null, 'Remote mount(s) established' );
          }
        }
@@ -77,10 +89,10 @@ function mountJdeQueue( cb) {
   
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.error( cmd + ' - Failed');  
+      log.e( cmd + ' - Failed');  
       cb( err, cmd + ' - Failed' );
     } else {
-      log.debug( cmd + ' - Done' );  
+      log.d( cmd + ' - Done' );  
       cb(null, cmd + ' - Done');
     }
   });
@@ -103,10 +115,10 @@ function mountSharedWorkDir( cb) {
 
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.error( cmd + ' - Failed');  
+      log.e( cmd + ' - Failed');  
       cb( err, cmd + ' - Failed' );
     } else {
-      log.debug( cmd + ' - Done' );  
+      log.d( cmd + ' - Done' );  
       cb(null, cmd + ' - Done');
     }
   });
@@ -125,10 +137,10 @@ function createSharedWorkDir( cb) {
 
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.error( cmd + ' - Failed');  
+      log.e( cmd + ' - Failed');  
       cb( err, cmd + ' - Failed' );
     } else {
-      log.debug( cmd + ' - Done' );  
+      log.d( cmd + ' - Done' );  
       cb(null, cmd + ' - Done');
     }
   });
@@ -143,10 +155,10 @@ function unmountJdeQueue( cb ) {
   cmd = 'umount ' + localJdeDir;
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.debug( cmd + ' - Failed' );
+      log.d( cmd + ' - Failed' );
       cb( null, 'Warning ' + cmd + ' - Failed so either way it is unmounted' );
     } else {
-      log.debug( cmd + ' - Done' );
+      log.d( cmd + ' - Done' );
       cb( null, cmd + ' - Done' );
     }
   });
@@ -160,10 +172,10 @@ function unmountSharedWorkDir( cb ) {
   cmd = 'umount ' + localWorkDir;
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.debug( cmd + ' - Failed' );
+      log.d( cmd + ' - Failed' );
       cb( null, 'Warning ' + cmd + ' - Failed so either way it is unmounted');
     } else {
-      log.debug( cmd + ' - Done' );
+      log.d( cmd + ' - Done' );
       cb( null, cmd + ' - Done' );
     }
   });
@@ -180,10 +192,10 @@ function checkJdeQueueMounted( cb) {
   cmd = 'mountpoint ' + localJdeDir;
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.warn( cmd + ' - Failed' );  
+      log.w( cmd + ' - Failed' );  
       cb( err, cmd + ' - Failed' );
     } else {
-      log.debug( cmd + ' - Done' );
+      log.d( cmd + ' - Done' );
       cb( null, cmd + ' - Done' );
     }
   });
@@ -199,10 +211,10 @@ function checkWorkDirMounted( cb) {
   cmd = 'mountpoint ' + localWorkDir;
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
-      log.warn( cmd + ' - Failed' );  
+      log.w( cmd + ' - Failed' );  
       cb( err, cmd + ' - Failed' );
     } else {
-      log.debug( cmd + ' - Done' );  
+      log.d( cmd + ' - Done' );  
       cb( null, cmd + ' - Done' );
     }
   });

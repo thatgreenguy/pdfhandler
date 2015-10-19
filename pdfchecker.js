@@ -14,7 +14,6 @@
 var moment = require( 'moment' ),
   log = require( './common/logger.js' ),
   odb = require( './common/odb.js' ),
-  needlogo = require( './common/needlogo.js' ),
   dologo = require( './common/dologo.js' ),
   domail = require( './common/domail.js' ),
   hostname = process.env.HOSTNAME,

@@ -144,3 +144,8 @@ module.exports.moveToNextStatus = function( dbc, row, statusFrom, statusTo, cb )
     });
 
 }
+// Module		: audit.js
+// Description		: Common Audit file logging related functions.
+// Author		: Paul Green
+// Dated		: 2015-08-03
+//

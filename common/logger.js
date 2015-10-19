@@ -3,8 +3,10 @@
 // Author		: Paul Green
 // Dated		: 2015-09-03
 //
-//
-// 
+// Creates a common logger to be used throughout application. Logs to console and /logs using rotation
+// which can be inspected whilst container exists! Create simple wrapper function to include date and time on console
+// logging as useful when docker logs used to check application state 
+
 
 var winston = require('winston');
 

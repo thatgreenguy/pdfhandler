@@ -9,7 +9,16 @@
   
 var odb = require('./odb.js'),
   audit = require( './audit.js' ),
-  log = require( './logger.js' );
+  log = require( './logger.js' ),
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
+
+
+// Functions -
+//
+// exports.placeLock = function( dbc, record, hostname, cb )
+// exports.removeContainerLock = function( dbc, record, hostname, cb )
+// exports.removeLock = function( dbc, record, hostname, cb )
 
 
 // Place Lock on PDF file
@@ -26,7 +35,7 @@ exports.placeLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "INSERT INTO testdta.F559858 VALUES (:lkfndfuf2, :lksawlatm, :lkactivid, :lkpid, :lkjobn, :lkuser, :lkupmj, :lkupmt)";
+    query = "INSERT INTO " + jdeEnvDb.trim() + "F559858 VALUES (:lkfndfuf2, :lksawlatm, :lkactivid, :lkpid, :lkjobn, :lkuser, :lkupmj, :lkupmt)";
     binds = [ jcfndfuf2, timestamp, hostname, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
     options = { autoCommit: true } 
 
@@ -60,7 +69,7 @@ exports.removeContainerLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "DELETE FROM testdta.F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
+    query = "DELETE FROM " + jdeEnvDb.trim() + "F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
     binds = [];
     options = { autoCommit: true };
 
@@ -90,7 +99,7 @@ exports.removeLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "DELETE FROM testdta.F559858 WHERE lkfndfuf2 = '" + jcfndfuf2 + "'";
+    query = "DELETE FROM " + jdeEnvDb.trim() + "F559858 WHERE lkfndfuf2 = '" + jcfndfuf2 + "'";
     binds = [];
     options = { autoCommit: true };
 

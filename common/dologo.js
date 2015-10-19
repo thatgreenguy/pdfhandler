@@ -1,7 +1,14 @@
-// dologo.js 
+// Module		: dologo.js
+// Description		: Handler that applies Logo image to each page of a given JDE PDF file.
+// Author		: Paul Green
+// Dated		: 2015-10-19
 //
-// 
-//
+// Called when a Queued PDF entry is waiting for Logo to be applied
+// Gain exclusive use of the PDF via lock, copy original PDF to work directory, apply Dlink Logo to each page
+// replace original JDE PDF in PrintQueue with Logo enhanced copy, move the Queued PDF entry to next status
+// then release lock. 
+// Audit log entries are written for each step to JDE Audit log table (1) to provide feedback/visibility  of this 
+// application processing to the JDE team and (2) to allow use of audit log for recovery processing if required
 
 
 var oracledb = require( 'oracledb' ),
@@ -12,7 +19,28 @@ var oracledb = require( 'oracledb' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
-  dirLocalJdePdf = process.env.DIR_SHAREDDATA;
+  dirLocalJdePdf = process.env.DIR_SHAREDDATA,
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
+
+
+// Functions -
+//
+// module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
+// function invalidConnection( err, pargs ) 
+// function validConnection( cn, p ) 
+// function placeLock( p, cb  ) 
+// function confirmLogoReady( p, cb  ) 
+// function copyPdf( p, cb  ) 
+// function auditLogCopyPdf( p, cb  ) 
+// function applyLogo( p, cb  ) 
+// function auditLogLogoApply( p, cb  )
+// function replaceJdePdf( p, cb  ) 
+// function auditLogJdePdfReplaced( p, cb  )
+// function updateProcessQueueStatus( p, cb  ) 
+// function auditLogQueuedPdfStatusChanged( p, cb  )
+// function finalStep( p  ) 
+//
 
 
 module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone ) {
@@ -61,14 +89,18 @@ function validConnection( cn, p ) {
 
   p.mycn = cn;
 
+
   async.series([
     function( next ) { placeLock( p, next ) }, 
     function( next ) { confirmLogoReady( p, next ) }, 
     function( next ) { copyPdf( p, next ) }, 
+    function( next ) { auditLogCopyPdf( p, next ) ), 
     function( next ) { applyLogo( p, next ) }, 
+    function( next ) { auditLogLogoApply( p, next ) ),
     function( next ) { replaceJdePdf( p, next ) }, 
-    function( next ) { updateProcessQueueStatus( p, next ) } 
-//    function( next ) { writeAuditEntry( p, next ) }
+    function( next ) { auditLogJdePdfReplaced( p, next ) ),
+    function( next ) { updateProcessQueueStatus( p, next ) }, 
+    function( next ) { auditLogQueuedPdfStatusChanged( p, next ) }
 
   ], function( err, resp ) {
 
@@ -137,6 +169,26 @@ function copyPdf( p, cb  ) {
 }
 
 
+// Write Audit Entry showing CopyPdf Step completed
+function auditLogCopyPdf( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
+
+  comments = 'LOGO processing - CopyPdf - Original JDE PDF copied to work directory'; 
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
+
+
 // Apply Logo to each page
 function applyLogo( p, cb  ) {
 
@@ -164,6 +216,27 @@ function applyLogo( p, cb  ) {
   });
   
 }
+
+
+// Create Audit record signalling PDF has been processed for Logo
+function auditLogLogoApply( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
+
+  comments = 'LOGO processing - ApplyLogo - Dlink Logo added to working copy of Original JDE PDF'; 
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
+
 
 
 // Replace JDE generated PDF file with modified Logo copy
@@ -195,10 +268,15 @@ function replaceJdePdf( p, cb  ) {
 
 
 // Create Audit record signalling PDF has been processed for Logo
-function writeAuditEntry( p, cb  ) {
+function auditLogJdePdfReplaced( p, cb  ) {
 
-  log.v( p.pdf + ' Step 6 - Write Audit Entry ' );
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+  var comments;
+
+  log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
+
+  comments = 'LOGO processing - ApplyLogo - JDE PDF in PrintQueue replaced with Logo enhanced copy from work directory'; 
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -213,8 +291,28 @@ function writeAuditEntry( p, cb  ) {
 // E.g. When Logo processing done change Pdf Queue entry status from say 100 to 200 (Email check next)
 function updateProcessQueueStatus( p, cb  ) {
 
-  log.v( p.pdf + ' Step 7 - Update PDF process Queue entry to next status as Logo done ' );
+  log.v( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Logo done ' );
   audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
+    if ( err ) {
+      return cb( err )
+    } else {
+      return cb( null )
+    }
+  }); 
+  
+}
+
+
+// Create Audit record signalling PDF has been processed for Logo
+function auditLogQueuedPdfStatusChanged( p, cb  ) {
+
+  var comments;
+
+  log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
+
+  comments = 'LOGO processing - QueuedPdfStatusChanged - Logo processing COMPLETE'; 
+
+  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
       return cb( err )
     } else {
@@ -279,7 +377,7 @@ function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
     // Check this PDF file has definitely not yet been processed by any other pdfHandler instance
     // that may be running concurrently
 
-    query = "SELECT COUNT(*) FROM testdta.F559859 WHERE pafndfuf2 = '";
+    query = "SELECT COUNT(*) FROM jdeEnvDb.F559859 WHERE pafndfuf2 = '";
     query += record[0] + "'";
 
     dbCn.execute( query, [], { }, function( err, result ) {
@@ -307,6 +405,3 @@ function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
         }
     }); 
 }
-
-
-

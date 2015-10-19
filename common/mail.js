@@ -1,4 +1,7 @@
-// Module mail.js
+// Module		: mail.js
+// Description		: Common Mail related functions.
+// Author		: Paul Green
+// Dated		: 2015-10-19
 //
 // Establish SMTP transport
 // Provide function to send Jde Ube report (PDF, CSV or both) via emal to configured receipients
@@ -9,7 +12,9 @@ var nodemailer = require( 'nodemailer' ),
   log = require( './logger.js' ),
   smtpTransport,
   smtphost = process.env.MAIL_HOST,
-  smtpport = process.env.MAIL_PORT;
+  smtpport = process.env.MAIL_PORT,
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
 
 
 // Initialisation
@@ -35,8 +40,24 @@ smtpTransport = nodemailer.createTransport( "SMTP", {
 });
 
 
+// Functions -
 //
-// 
+// module.exports.prepMail = function( dbCn, jdeJob, postMailCb )
+// function fetchMailDefaults( dbCn, jdeJob, postMailCb, useVersion, reportOptions, versionOptions )
+// function queryJdeEmailConfig( dbCn, jdeJob, postMailCb, reportName, versionName, reportOptions, versionOptions ) 
+// function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF559890, numRows, reportOptions, versionOptions ) 
+// function processEmailConfigEntry( dbCn, jdeJob, postMailCb, rsF559890, record, versionName, reportOptions, versionOptions ) 
+// function getVersionOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions ) 
+// function mergeAllOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions ) 
+// function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) 
+// function processVersionOverrides( reportOptions, versionOptions, mailOptions, versionOption, cb ) 
+// function removeOverrideOption( reportOptions, versionOptions, mailOptions, versionOption, reportOption, cb ) 
+// module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) 
+// function oracleResultSetClose( connection, rs ) 
+// function oracleDbConnectionRelease( connection ) 
+// function cleanup() 
+ 
+
 // Read email options from JDE database for this reprot then send the email
 module.exports.prepMail = function( dbCn, jdeJob, postMailCb ) {
 
@@ -47,7 +68,6 @@ module.exports.prepMail = function( dbCn, jdeJob, postMailCb ) {
   fetchMailDefaults( dbCn, jdeJob, postMailCb, false, reportOptions, versionOptions );
 
 }
-
 
 
 // Fetch default email configuration for given Jde report name.
@@ -84,7 +104,7 @@ function queryJdeEmailConfig( dbCn, jdeJob, postMailCb, reportName, versionName,
 
   log.debug( 'Fetch email config for Report: ' + reportName + ' version: ' + versionName );
 
-  query = "SELECT * FROM testdta.F559890 WHERE CRPGM = '" + reportName;
+  query = "SELECT * FROM " + jdeEnvDb.trim() + "F559890 WHERE CRPGM = '" + reportName;
   query += "' AND CRVERNM = '" + versionName + "'";
   query += " AND CRCFGSID = 'PDFMAILER'";
   
@@ -136,8 +156,7 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
       log.debug( 'Email Record: ' + rows[ 0 ] );
 
       // Process the Email Configuration record entry
-      processEmailConfigEntry(  dbCn, jdeJob, postMailCb, rsF559890,
-        rows[ 0 ], versionName, reportOptions, versionOptions );
+      processEmailConfigEntry(  dbCn, jdeJob, postMailCb, rsF559890, rows[ 0 ], versionName, reportOptions, versionOptions );
 
     }
   });
@@ -145,8 +164,7 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
 
 
 // Process each Email Configuration entry
-function processEmailConfigEntry( dbCn, jdeJob, postMailCb, rsF559890, record,
-  versionName, reportOptions, versionOptions ) {
+function processEmailConfigEntry( dbCn, jdeJob, postMailCb, rsF559890, record, versionName, reportOptions, versionOptions ) {
 
   log.i( 'Rptoptions: ' + reportOptions );
   log.i( 'Veroptions: ' + versionOptions );
@@ -402,9 +420,6 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 }
 
 
-
-
-
 // Close Oracle Database result set
 function oracleResultSetClose( connection, rs ) {
 
@@ -435,27 +450,5 @@ function cleanup() {
 
   // When finished with transport object do following....
   smtpTransport.close();
-
-}
-
-
-
-// -----------------------------------------------------------------
-// Build options for mail sending using passed JDE Report / Job Name
-module.exports.testMail = function( dbCn, jdeJob, cb ) {
-
-  // Test Email 
-  var mailOptions = {
-    from: "noreply@dlink.com",
-    to: "paul.green@dlink.com, thatgreenguy@gmx.co.uk",
-    subject: "Hi - this is a test email from Node on Centos",
-    text: "Hello - Testing Testing 1 2 3 ...",
-    html: "<P>Hello - Testing Testing 1 2 3 ...",
-    attachments: [{ fileName: 'R5542565', filePath: "/home/pdfdata/R5542565_ESXCOC02_183614_PDF" }]
-    };
-
-  // Fetch mail configuration for passed Jde Job here and send the email
-  // Once done pass control on to given callback
-  module.exports.sendMail( mailOptions, cb );
 
 }
