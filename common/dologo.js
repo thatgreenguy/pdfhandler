@@ -92,15 +92,15 @@ function validConnection( cn, p ) {
 
   async.series([
     function( next ) { placeLock( p, next ) }, 
-    function( next ) { confirmLogoReady( p, next ) }, 
-    function( next ) { copyPdf( p, next ) }, 
-    function( next ) { auditLogCopyPdf( p, next ) ), 
-    function( next ) { applyLogo( p, next ) }, 
-    function( next ) { auditLogLogoApply( p, next ) ),
-    function( next ) { replaceJdePdf( p, next ) }, 
-    function( next ) { auditLogJdePdfReplaced( p, next ) ),
-    function( next ) { updateProcessQueueStatus( p, next ) }, 
-    function( next ) { auditLogQueuedPdfStatusChanged( p, next ) }
+    function( next ) { confirmLogoReady( p, next )}, 
+    function( next ) { copyPdf( p, next )}, 
+    function( next ) { auditLogCopyPdf( p, next )}, 
+    function( next ) { applyLogo( p, next )}, 
+    function( next ) { auditLogLogoApply( p, next )},
+    function( next ) { replaceJdePdf( p, next )}, 
+    function( next ) { auditLogJdePdfReplaced( p, next )},
+    function( next ) { updateProcessQueueStatus( p, next )}, 
+    function( next ) { auditLogQueuedPdfStatusChanged( p, next )}
 
   ], function( err, resp ) {
 
@@ -176,7 +176,7 @@ function auditLogCopyPdf( p, cb  ) {
 
   log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
 
-  comments = 'LOGO processing - CopyPdf - Original JDE PDF copied to work directory'; 
+  comments = 'LOGO | STEP1 | CopyPdf | Original JDE PDF copied to work directory'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
@@ -225,7 +225,7 @@ function auditLogLogoApply( p, cb  ) {
 
   log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
 
-  comments = 'LOGO processing - ApplyLogo - Dlink Logo added to working copy of Original JDE PDF'; 
+  comments = 'LOGO | STEP2 | ApplyLogo | Dlink Logo added to working copy of Original JDE PDF'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
@@ -274,7 +274,7 @@ function auditLogJdePdfReplaced( p, cb  ) {
 
   log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
 
-  comments = 'LOGO processing - ApplyLogo - JDE PDF in PrintQueue replaced with Logo enhanced copy from work directory'; 
+  comments = 'LOGO | STEP3 | JdePdfReplaced | JDE PrintQueue pdf replaced with Logo version from work directory'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
@@ -310,7 +310,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'LOGO processing - QueuedPdfStatusChanged - Logo processing COMPLETE'; 
+  comments = 'LOGO | STEP4 | QueuedPdfStatusChanged | COMPLETED '; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {

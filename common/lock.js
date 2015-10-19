@@ -35,7 +35,7 @@ exports.placeLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "INSERT INTO " + jdeEnvDb.trim() + "F559858 VALUES (:lkfndfuf2, :lksawlatm, :lkactivid, :lkpid, :lkjobn, :lkuser, :lkupmj, :lkupmt)";
+    query = "INSERT INTO " + jdeEnvDb.trim() + ".F559858 VALUES (:lkfndfuf2, :lksawlatm, :lkactivid, :lkpid, :lkjobn, :lkuser, :lkupmj, :lkupmt)";
     binds = [ jcfndfuf2, timestamp, hostname, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
     options = { autoCommit: true } 
 
@@ -69,7 +69,7 @@ exports.removeContainerLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "DELETE FROM " + jdeEnvDb.trim() + "F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
+    query = "DELETE FROM " + jdeEnvDb.trim() + ".F559858 WHERE lkfndfuf2 = '" + jcfndfuf2  +"' AND lkactivid = '" + hostname + "'";
     binds = [];
     options = { autoCommit: true };
 
@@ -99,7 +99,7 @@ exports.removeLock = function( dbc, record, hostname, cb ) {
     binds,
     options;
 
-    query = "DELETE FROM " + jdeEnvDb.trim() + "F559858 WHERE lkfndfuf2 = '" + jcfndfuf2 + "'";
+    query = "DELETE FROM " + jdeEnvDb.trim() + ".F559858 WHERE lkfndfuf2 = '" + jcfndfuf2 + "'";
     binds = [];
     options = { autoCommit: true };
 

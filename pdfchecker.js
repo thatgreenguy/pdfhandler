@@ -168,8 +168,11 @@ function constructQuery( statusFrom, statusTo ) {
 
   // Query F559811 by status codes to retrieve a list of PDF that require processing
 
-  query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + "F559811 ";
+  query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + ".F559811 ";
   query += " WHERE jpyexpst = " + statusFrom;
+
+//test
+  query += " AND jpblkk like '%10021%'";
 
   log.d( query );
 

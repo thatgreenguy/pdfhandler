@@ -42,7 +42,7 @@ exports.createAuditEntry = function( dbc, pdfjob, genkey, ctrid, status, comment
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  query = "INSERT INTO " + jdeEnvDb.trim() + "F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :pacomments, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
+  query = "INSERT INTO " + jdeEnvDb.trim() + ".F559859 VALUES (:pasawlatm, :pafndfuf2, :pablkk, :paactivid, :padeltastat, :pacomments, :papid, :pajobn, :pauser, :paupmj, :paupmt)";
   binds = [ timestamp, pdfjob, genkey, ctrid, status, comments, 'PDFHANDLER', 'CENTOS', 'DOCKER', jdedate, jdetime ]
   options = { autoCommit: true }
 
@@ -78,7 +78,7 @@ exports.updatePdfQueueStatus = function( dbc, pdfjob, genkey, ctrid, status, cb 
   jdedate = exports.getJdeJulianDate( dt );
   jdetime = exports.getJdeAuditTime( dt );
 
-  query = "UPDATE " + jdeEnvDb.trim() + "F559811 SET jpyexpst = '" + status + "' WHERE jpfndfuf2 = '" + pdfjob + "'";
+  query = "UPDATE " + jdeEnvDb.trim() + ".F559811 SET jpyexpst = '" + status + "' WHERE jpfndfuf2 = '" + pdfjob + "'";
   binds = [ ]
   options = { autoCommit: true }
 

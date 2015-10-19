@@ -241,9 +241,9 @@ function auditLogCopyPdf( p, cb  ) {
   log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL processing - CopyPdf - Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL | STEP1 | CopyPdf | Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL processing - CopyPdf - .pdf attachment copy made in working directory'; 
+    comments = 'MAIL | STEP1 | CopyPdf | .pdf attachment copy made in working directory'; 
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
@@ -296,9 +296,9 @@ function auditLogMailReport( p, cb  ) {
   log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL processing - mailReport - Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL | STEP2 | mailReport | SKIP - Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL processing - mailReport - Mail Server indicates Mail Sent'; 
+    comments = 'MAIL | STEP2 | mailReport | SENT - Mail Server indicates Mail Sent'; 
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
@@ -354,9 +354,9 @@ function auditLogRemovePdfCopy( p, cb  ) {
   log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL processing - mailReport - Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL | STEP3 | RemovePdfCopy | SKIP - Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL processing - mailReport - PDF Copy made for mailing removed from work directory'; 
+    comments = 'MAIL | STEP3 | RemovePdfCopy | .pdf Attachment Copy removed from work directory'; 
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
@@ -393,7 +393,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'MAIL processing - QueuedPdfStatusChanged - Mail processing COMPLETE'; 
+  comments = 'MAIL | STEP4 | QueuedPdfStatusChanged | COMPLETED'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, comments, function( err, result ) {
     if ( err ) {
