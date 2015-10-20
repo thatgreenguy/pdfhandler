@@ -393,14 +393,14 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 
   }
 
-  log.d( 'EMAIL: ' + email );
-  log.d( 'FROM: ' + from );
-  log.d( 'TO: ' + to );
-  log.d( 'SUBJECT: ' + subject );
-  log.d( 'CC: ' + cc );
-  log.d( 'BCC: ' + bcc );
-  log.d( 'TEXT: ' + text );
-  log.d( 'ATT: ' + attachments );
+  log.i( 'EMAIL: ' + email );
+  log.i( 'FROM: ' + from );
+  log.i( 'TO: ' + to );
+  log.i( 'SUBJECT: ' + subject );
+  log.i( 'CC: ' + cc );
+  log.i( 'BCC: ' + bcc );
+  log.i( 'TEXT: ' + text );
+  log.i( 'ATT: ' + attachments );
 
   mo['from'] = from;
   mo['to'] = to;
