@@ -394,12 +394,16 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
   mo['subject'] = subject;
   mo['text'] = text;
   if ( cc ) {
-    mo['cc'] = from;
+    mo['cc'] = cc;
   }
   if ( bcc ) {
-    mo['bcc'] = from;
+    mo['bcc'] = bcc;
   }
   mo['attachments'] = attachments;
+
+  log.d( 'Mail Option check before send request...' );
+  log.d( JSON.stringify( mo ) );
+ 
 
   if ( email === 'Y' ) {
     smtpTransport.sendMail( mo, 
