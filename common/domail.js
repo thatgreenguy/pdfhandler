@@ -285,12 +285,6 @@ function mailReport( p, cb ) {
 
     log.v( p.pdf + ' Step 4 - Emailing Report' );
 
-log.w( '=======================================================================' )
-log.w( 'p.pdf: ' + p.pdf )
-log.w( 'p.mailoptions: ' + JSON.stringify(p.mailoptions) )
-log.w( '=======================================================================' )
-
-
     mail.doMail( p.pdf, p.mailoptions, function( err, result ) {
 
       if ( err ) {

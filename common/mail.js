@@ -22,16 +22,16 @@ var nodemailer = require( 'nodemailer' ),
 // Default SMTP Host and PORT if not provided in environment variables
 if ( typeof( smtphost ) === 'undefined' ) 
 {
-  log.w( 'No SMTP Host environment variable "SMTP_HOST" defined - defaulting to 172.31.3.15' )
+  log.d( 'No SMTP Host environment variable "SMTP_HOST" defined - defaulting to 172.31.3.15' )
   smtphost = '172.31.3.15'
 }
 if ( typeof( smtpport ) === 'undefined' ) 
 {
-  log.w( 'No SMTP Port environment variable "SMTP_PORT" defined - defaulting to 25' )
+  log.d( 'No SMTP Port environment variable "SMTP_PORT" defined - defaulting to 25' )
   smtpport = 25
 }
 
-log.w( 'SMTP HOST : ' + smtphost + ' PORT : ' + smtpport );
+log.i( 'Email via SMTP HOST : ' + smtphost + ' PORT : ' + smtpport );
 
 // create re-usable transporter object using SMTP transport
 //  host: '172.31.3.15',
@@ -118,8 +118,8 @@ function queryJdeEmailConfig( dbCn, jdeJob, postMailCb, reportName, versionName,
     if ( err ) {
     
       // Error trying to read mail config so return to caller with error handle it there
-      log.error( 'Query Failed : queryJdeEmailConfig Failed' );
-      log.error( err.message );
+      log.e( 'Query Failed : queryJdeEmailConfig Failed' );
+      log.e( err.message );
       return postMailCb( err );
 
     }
@@ -138,27 +138,27 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
     if ( err ) {
 
       oracleResultSetClose( dbCn, rsF559890 );
-      log.verbose( 'No email configuration found' );
+      log.v( 'No email configuration found' );
       return postMailCb( err )      
 
     } else if ( rows.length == 0 ) {
       
       oracleResultSetClose( dbCn, rsF559890 );
-      log.debug( 'Finished processing email configuration entries' );
+      log.d( 'Finished processing email configuration entries' );
 
       // Done processing so pass control to next function with results
       if ( versionName === '*ALL' ) {
-        getVersionOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions );
+        return getVersionOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions );
       } else {
-        mergeAllOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions );
+        return mergeAllOptions( dbCn, jdeJob, postMailCb, reportOptions, versionOptions );
       }
       
     } else if ( rows.length > 0 ) {
  
-      log.debug( 'Email Record: ' + rows[ 0 ] );
+      log.d( 'Email Record: ' + rows[ 0 ] );
 
       // Process the Email Configuration record entry
-      processEmailConfigEntry(  dbCn, jdeJob, postMailCb, rsF559890, rows[ 0 ], versionName, reportOptions, versionOptions );
+      return processEmailConfigEntry(  dbCn, jdeJob, postMailCb, rsF559890, rows[ 0 ], versionName, reportOptions, versionOptions );
 
     }
   });
@@ -168,8 +168,8 @@ function processResultsFromF559890( dbCn, jdeJob, postMailCb, versionName, rsF55
 // Process each Email Configuration entry
 function processEmailConfigEntry( dbCn, jdeJob, postMailCb, rsF559890, record, versionName, reportOptions, versionOptions ) {
 
-  log.i( 'Rptoptions: ' + reportOptions );
-  log.i( 'Veroptions: ' + versionOptions );
+  log.d( 'Rptoptions: ' + reportOptions );
+  log.d( 'Veroptions: ' + versionOptions );
 
 
   if ( versionName === '*ALL' ) {
@@ -226,13 +226,13 @@ function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) {
     async.apply( processVersionOverrides, reportOptions, versionOptions, mailOptions ),
     function ( err ) {
       if ( err ) {
-        log.error( 'mergMailOptions encountered error' );
-        log.error( err );
+        log.e( 'mergMailOptions encountered error' );
+        log.e( err );
         return postMailCb( err );     
       }    
   
       // okay show results for amended Report options (removed version overrides)
-     log.info( 'After: ' + mailOptions )
+     log.i( 'After: ' + mailOptions )
 
      // Now add in the version overrides and return final result
      mailOptions = mailOptions.concat( versionOptions );
@@ -256,8 +256,8 @@ function processVersionOverrides( reportOptions, versionOptions, mailOptions, ve
     async.apply( removeOverrideOption, reportOptions, versionOptions, mailOptions, versionOption ),
     function ( err ) {
       if ( err ) {
-        log.error( 'processVersionOverrides encountered error' );
-        log.error( err );
+        log.e( 'processVersionOverrides encountered error' );
+        log.e( err );
         return cb( err );
       }
     }   
@@ -305,8 +305,6 @@ function removeOverrideOption( reportOptions, versionOptions, mailOptions, versi
 // Send Email
 module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 
-  log.verbose( 'About to send email with these options : ' + mailOptions );
-  
   // mailOptions holds mail configuration for this report from the JDE database
   // this could be as simple as a TO address as sensible defaults should be provided
   // by this program for any missing config.
@@ -333,7 +331,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
   for ( var i = 0; i < mailOptions.length; i++ ) {
 
     entry = mailOptions[ i ];
-    log.w( entry );
+    log.v( entry );
 
     if ( entry[ 0 ] === 'EMAIL' ) {
       email = entry[ 1 ];
@@ -388,7 +386,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
 
   if ( ! to ) {
  
-    log.error( 'No TO recipient defined - unable to send this email' );
+    log.w( 'No TO recipient defined - unable to send this email' );
     email = 'N';
 
   }
@@ -423,13 +421,13 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     function(err, response) {
   
       if ( err ) {
-        log.error( 'Error trying to send email - failed' );
-        log.error( err );
+        log.e( 'Error trying to send email - failed' );
+        log.e( err );
        return postMailCb( err );
 
       } else {
 
-        log.verbose( "Email sent: " + response.message);
+        log.i( "Email sent: " + response.message);
         postMailCb( null, 'SENT');
       }
     });
@@ -442,8 +440,8 @@ function oracleResultSetClose( connection, rs ) {
 
   rs.close( function( err ) {
     if ( err ) {
-      log.error( 'Failed to close/cleanup DB resultset' );
-      log.error( err );
+      log.e( 'Failed to close/cleanup DB resultset' );
+      log.e( err );
       oracleDbConnectionRelease( connection );
     }
   });
@@ -455,8 +453,8 @@ function oracleDbConnectionRelease( connection ) {
 
   connection.release( function( err ) {
     if ( err ) {
-      log.error( 'Failed to release/cleanup DB connection' );
-      log.error( err );
+      log.e( 'Failed to release/cleanup DB connection' );
+      log.e( err );
       return;
     }
   });
