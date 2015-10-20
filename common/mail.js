@@ -218,7 +218,7 @@ function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) {
   var mailOptions = reportOptions.slice();
 
   // Show array before
-  log.i( 'Before: ' + mailOptions )
+  log.d( 'Before: ' + mailOptions )
 
   // Iterate over Version specific overrides and remove them from report mail options first
   async.each(
@@ -231,16 +231,14 @@ function mergeMailOptions( jdeJob, reportOptions, versionOptions, postMailCb ) {
         return postMailCb( err );     
       }    
   
+      // Now add in the version overrides and return final result
+      mailOptions = mailOptions.concat( versionOptions );
+
       // okay show results for amended Report options (removed version overrides)
-     log.i( 'After: ' + mailOptions )
-
-     // Now add in the version overrides and return final result
-     mailOptions = mailOptions.concat( versionOptions );
+      log.d( 'After: ' + mailOptions )
     
-    // dont send return results to caller let caller decide if error or options returned and handle appropriately 
-    //sendMail( jdeJob, mailOptions, postMailCb );     
-
-    return postMailCb( null, mailOptions ); 
+      // dont send return results to caller let caller decide if error or options returned and handle appropriately 
+      return postMailCb( null, mailOptions ); 
 
     }   
   );
