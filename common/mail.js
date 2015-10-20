@@ -31,6 +31,8 @@ if ( typeof( smtpport ) === 'undefined' )
   smtpport = 25
 }
 
+log.w( 'SMTP HOST : ' + smtphost + ' PORT : ' + smtpport );
+
 // create re-usable transporter object using SMTP transport
 //  host: '172.31.3.15',
 //  port: 25
@@ -321,7 +323,7 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     attachments = [],
     wrk = {},
     entry,
-    mo = {}.
+    mo = {},
     csv = 'N';
 
   subject = 'Dlink JDE Report : ' + jdeJob;

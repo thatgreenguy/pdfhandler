@@ -285,9 +285,11 @@ function mailReport( p, cb ) {
 
     log.v( p.pdf + ' Step 4 - Emailing Report' );
 
-    // If CSV requested in place of PDF then adjust filename
-    log.e( '--------------' );
-    log.e( JSON.stringify(p) );
+log.w( '=======================================================================' )
+log.w( 'p.pdf: ' + p.pdf )
+log.w( 'p.mailoptions: ' + JSON.stringify(p.mailoptions) )
+log.w( '=======================================================================' )
+
 
     mail.doMail( p.pdf, p.mailoptions, function( err, result ) {
 
