@@ -326,10 +326,9 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     mo = {},
     csv = 'N';
 
+  // Provide default values for Subject and Text (can be overridden by PDFMAIL configuration options)
   subject = 'Dlink JDE Report : ' + jdeJob;
   text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
-
-  
   
   for ( var i = 0; i < mailOptions.length; i++ ) {
 
