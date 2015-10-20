@@ -178,6 +178,9 @@ function getMailConfig( p, cb  ) {
           if ( option[ 0 ] === 'EMAIL' ) {
             p.mailenabled = option[ 1 ]
           }        
+          if ( option[ 0 ] === 'EMAIL_CSV' ) {
+            p.mailcsv = option[ 1 ]
+          }        
         }
       }
      
@@ -217,9 +220,15 @@ function copyPdf( p, cb  ) {
 
     log.v( p.pdf + ' Step 3 - Create .pdf version of report for mailing' );
 
-    cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+    // Copy the PDF or the CSV file
+    if ( p.mailcsv !== 'Y' ) {
+      cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + '.pdf';
+      log.d( p.pdf + " - Copy report to be mailed to work directory and give it a .pdf extension" );
+    } else {
+     cmd = "cp /home/pdfdata/" + p.pdf.trim() + '.csv' + " /home/shareddata/wrkdir/" + p.pdf.trim() + '.csv';
+     log.d( p.pdf.trim() + ".csv" + " - Copy report to be mailed to work directory and give it .csv extension" );
+    }
 
-    log.d( p.pdf + " - Copy report to be mailed to work directory and give it .pdf extension" );
     log.d( cmd );
 
     exec( cmd, function( err, stdout, stderr ) {
@@ -244,7 +253,11 @@ function auditLogCopyPdf( p, cb  ) {
   if ( p.mailenabled !== 'Y' ) {
     comments = 'MAIL | STEP1 | CopyPdf | Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL | STEP1 | CopyPdf | .pdf attachment copy made in working directory'; 
+    if ( p.mailcsv !== 'Y' ) {
+      comments = 'MAIL_STEP1_CopyPdf_.pdf attachment copy made in working directory'; 
+    } else {
+      comments = 'MAIL_STEP1_CopyPdf_.csv attachment copy made in working directory'; 
+    }
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
@@ -271,6 +284,11 @@ function mailReport( p, cb ) {
   } else {
 
     log.v( p.pdf + ' Step 4 - Emailing Report' );
+
+    // If CSV requested in place of PDF then adjust filename
+    log.e( '--------------' );
+    log.e( JSON.stringify(p) );
+
     mail.doMail( p.pdf, p.mailoptions, function( err, result ) {
 
       if ( err ) {
@@ -297,9 +315,9 @@ function auditLogMailReport( p, cb  ) {
   log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL | STEP2 | mailReport | SKIP - Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL_STEP2_mailReport_SKIP_Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL | STEP2 | mailReport | SENT - Mail Server indicates Mail Sent'; 
+    comments = 'MAIL_STEP2_mailReport_SENT_Mail Server indicates Mail Sent'; 
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
@@ -326,9 +344,12 @@ function removePdfCopy( p, cb  ) {
   } else {
 
     log.v( p.pdf + ' Step 5 - Remove temporary .pdf file once mail sent' );
-  
-    cmd = "rm /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
 
+    if ( p.mailcsv !== 'Y' ) {
+      cmd = "rm /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
+    } else {
+      cmd = "rm /home/shareddata/wrkdir/" + p.pdf.trim() + ".csv";
+    }
     log.d( cmd );
 
     exec( cmd, function( err, stdout, stderr ) {
@@ -355,9 +376,13 @@ function auditLogRemovePdfCopy( p, cb  ) {
   log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL | STEP3 | RemovePdfCopy | SKIP - Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL_STEP3_RemovePdfCopy_SKIP_Config indicates Email currently Disabled for Report / Version'; 
   } else {
-    comments = 'MAIL | STEP3 | RemovePdfCopy | .pdf Attachment Copy removed from work directory'; 
+    if ( p.mailcsv !== 'Y' ) {
+      comments = 'MAIL_STEP3_RemovePdfCopy_.pdf Attachment Copy removed from work directory'; 
+    } else {
+      comments = 'MAIL_STEP3_RemovePdfCopy_.csv Attachment Copy removed from work directory'; 
+    }
   }
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {

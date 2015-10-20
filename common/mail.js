@@ -321,7 +321,8 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     attachments = [],
     wrk = {},
     entry,
-    mo = {};
+    mo = {}.
+    csv = 'N';
 
   subject = 'Dlink JDE Report : ' + jdeJob;
   text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
@@ -366,11 +367,22 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
     if ( entry[ 0 ] === 'EMAIL_FROM' ) {
       from = entry[ 1 ];
     }
+    if ( entry[ 0 ] === 'EMAIL_CSV' ) {
+      csv = entry[ 1 ];
+    }
 
   }
 
-  wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
-  wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
+
+  // Could be sending .pdf or .csv
+  if ( csv !== 'Y' ) {
+    wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
+    wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
+  } else {
+    wrk[ 'filename' ] = jdeJob.trim() + '.csv';
+    wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.csv';
+  }
+
   attachments[ 0 ] = wrk;
 
   if ( ! to ) {
