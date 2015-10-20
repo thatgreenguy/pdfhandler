@@ -106,7 +106,7 @@ function queryJdeEmailConfig( dbCn, jdeJob, postMailCb, reportName, versionName,
 
   query = "SELECT * FROM " + jdeEnvDb.trim() + ".F559890 WHERE CRPGM = '" + reportName;
   query += "' AND CRVERNM = '" + versionName + "'";
-  query += " AND CRCFGSID = 'PDFMAILER'";
+  query += " AND CRCFGSID = 'PDFMAIL'";
   
   log.debug( query ); 
 
