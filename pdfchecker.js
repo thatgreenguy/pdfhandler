@@ -171,9 +171,6 @@ function constructQuery( statusFrom, statusTo ) {
   query = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + ".F559811 ";
   query += " WHERE jpyexpst = " + statusFrom;
 
-//test
-  query += " AND jpblkk like '%30029%'";
-
   log.d( query );
 
   return query;
