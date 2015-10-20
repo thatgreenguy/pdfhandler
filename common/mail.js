@@ -19,20 +19,6 @@ var nodemailer = require( 'nodemailer' ),
 
 // Initialisation
 //
-// Default SMTP Host and PORT if not provided in environment variables
-if ( typeof( smtphost ) === 'undefined' ) 
-{
-  log.d( 'No SMTP Host environment variable "SMTP_HOST" defined - defaulting to 172.31.3.15' )
-  smtphost = '172.31.3.15'
-}
-if ( typeof( smtpport ) === 'undefined' ) 
-{
-  log.d( 'No SMTP Port environment variable "SMTP_PORT" defined - defaulting to 25' )
-  smtpport = 25
-}
-
-log.i( 'Email via SMTP HOST : ' + smtphost + ' PORT : ' + smtpport );
-
 // create re-usable transporter object using SMTP transport
 //  host: '172.31.3.15',
 //  port: 25
