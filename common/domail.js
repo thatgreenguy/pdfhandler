@@ -125,7 +125,7 @@ function validConnection( cn, p ) {
 // Get exclusive Lock for this PDF
 function placeLock( p, cb  ) {
 
-  log.v( p.pdf + ' Step 1 - Place Lock on this PDF file ' );
+  log.i( p.pdf + ' Step 1 - Place Lock on this PDF file ' );
 
   lock.placeLock( p.mycn, p.row, p.hostname, function( err, result ) {
     if ( err ) {
@@ -148,7 +148,7 @@ function getMailConfig( p, cb  ) {
   // Mail flag initially set to 'No' set from actual mail config options below
   p.mailenabled = 'N';
 
-  log.v( p.pdf + ' Step 2 - fetch Mail Configuration Options for this Report/Version ' );
+  log.i( p.pdf + ' Step 2 - fetch Mail Configuration Options for this Report/Version ' );
 
   // First fetch Mail Options for this Report and Version
   mail.prepMail( p.mycn, p.pdf, function( err, result ) {
@@ -213,20 +213,20 @@ function copyPdf( p, cb  ) {
 
   if ( p.mailenabled !== 'Y' ) {
 
-    log.v( p.pdf + ' Step 3 - Skip as Report Mailing has been disabled' ); 
+    log.i( p.pdf + ' Step 3 - Skip as Report Mailing has been disabled' ); 
     return cb( null );
 
   } else {  
 
-    log.v( p.pdf + ' Step 3 - Create .pdf version of report for mailing' );
+    log.i( p.pdf + ' Step 3 - Create .pdf version of report for mailing' );
 
     // Copy the PDF or the CSV file
     if ( p.mailcsv !== 'Y' ) {
       cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + '.pdf';
-      log.d( p.pdf + " - Copy report to be mailed to work directory and give it a .pdf extension" );
+      log.i( p.pdf + " - Copy report to be mailed to work directory and give it a .pdf extension" );
     } else {
      cmd = "cp /home/pdfdata/" + p.pdf.trim() + '.csv' + " /home/shareddata/wrkdir/" + p.pdf.trim() + '.csv';
-     log.d( p.pdf.trim() + ".csv" + " - Copy report to be mailed to work directory and give it .csv extension" );
+     log.i( p.pdf.trim() + ".csv" + " - Copy report to be mailed to work directory and give it .csv extension" );
     }
 
     log.d( cmd );
@@ -248,7 +248,7 @@ function auditLogCopyPdf( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
     comments = 'MAIL | STEP1 | CopyPdf | Config indicates Email currently Disabled for Report / Version'; 
@@ -278,12 +278,12 @@ function mailReport( p, cb ) {
 
   if ( p.mailenabled !== 'Y' ) {
 
-    log.v( p.pdf + ' Step 4 - Skip as Report Mailing has been disabled' );
+    log.i( p.pdf + ' Step 4 - Skip as Report Mailing has been disabled' );
     return cb( null )
 
   } else {
 
-    log.v( p.pdf + ' Step 4 - Emailing Report' );
+    log.i( p.pdf + ' Step 4 - Emailing Report' );
 
     mail.doMail( p.pdf, p.mailoptions, function( err, result ) {
 
@@ -308,7 +308,7 @@ function auditLogMailReport( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 4a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
     comments = 'MAIL_STEP2_mailReport_SKIP_Config indicates Email currently Disabled for Report / Version'; 
@@ -334,12 +334,12 @@ function removePdfCopy( p, cb  ) {
 
   if ( p.mailenabled !== 'Y' ) {
 
-    log.v( p.pdf + ' Step 5 - Skip as Report Mailing has been disabled' );
+    log.i( p.pdf + ' Step 5 - Skip as Report Mailing has been disabled' );
     return cb( null )
 
   } else {
 
-    log.v( p.pdf + ' Step 5 - Remove temporary .pdf file once mail sent' );
+    log.i( p.pdf + ' Step 5 - Remove temporary .pdf or .csv file once mail sent' );
 
     if ( p.mailcsv !== 'Y' ) {
       cmd = "rm /home/shareddata/wrkdir/" + p.pdf.trim() + ".pdf";
@@ -369,7 +369,7 @@ function auditLogRemovePdfCopy( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 5a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
     comments = 'MAIL_STEP3_RemovePdfCopy_SKIP_Config indicates Email currently Disabled for Report / Version'; 
@@ -396,7 +396,7 @@ function auditLogRemovePdfCopy( p, cb  ) {
 // E.g. When Mail processing done change Pdf Queue entry status from say 200 to 999 (Complete)
 function updateProcessQueueStatus( p, cb  ) {
 
-  log.v( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Mailing done ' );
+  log.i( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Mailing done ' );
   audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
     if ( err ) {
       return cb( err )
@@ -413,7 +413,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 6a - Write Audit Entry ' );
 
   comments = 'MAIL | STEP4 | QueuedPdfStatusChanged | MAIL COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
 
@@ -431,7 +431,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 // Release Lock entry for this PDF - Called when processing complete or if error
 function finalStep( p  ) {
 
-  log.v( p.pdf + ' finalStep - Release Lock ' );
+  log.i( p.pdf + ' finalStep - Release Lock ' );
 
   lock.removeContainerLock( p.mycn, p.row, p.hostname, function( err, result ) {
 

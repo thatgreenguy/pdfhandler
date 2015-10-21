@@ -68,8 +68,6 @@ module.exports.queryJdePdfProcessQueue = function( dbp, hostname, statusFrom, st
 
         var cb;
 
-        log.i( row );
-
         // Process subsequent block of records when finished with current Pdf
         cb = function() { processResultSet( dbc ); };
 
