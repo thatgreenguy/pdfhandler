@@ -251,7 +251,7 @@ function auditLogCopyPdf( p, cb  ) {
   log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
 
   if ( p.mailenabled !== 'Y' ) {
-    comments = 'MAIL | STEP1 | CopyPdf | Config indicates Email currently Disabled for Report / Version'; 
+    comments = 'MAIL_STEP1_CopyPdf_Config indicates Email currently Disabled for Report / Version'; 
   } else {
     if ( p.mailcsv !== 'Y' ) {
       comments = 'MAIL_STEP1_CopyPdf_.pdf attachment copy made in working directory'; 
@@ -415,7 +415,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   log.i( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'MAIL | STEP4 | QueuedPdfStatusChanged | MAIL COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
+  comments = 'MAIL_STEP4_QueuedPdfStatusChanged_MAIL COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {

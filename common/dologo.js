@@ -124,7 +124,7 @@ function validConnection( cn, p ) {
 // Get exclusive Lock for this PDF
 function placeLock( p, cb  ) {
 
-  log.v( p.pdf + ' Step 1 - Place Lock on this PDF file ' );
+  log.i( p.pdf + ' Step 1 - Place Lock on this PDF file ' );
 
   lock.placeLock( p.mycn, p.row, p.hostname, function( err, result ) {
     if ( err ) {
@@ -139,7 +139,9 @@ function placeLock( p, cb  ) {
 // Check Audit to make sure it has not been recently processed by any other instance of this app
 function confirmLogoReady( p, cb  ) {
 
-  log.v( p.pdf + ' Step 2 - Check PDF definitely not yet had Logo applied ' );
+  // step only required if we start running multiple instances.... see reference code at bottom
+  // this feature not yet implemeneted!!
+  log.i( p.pdf + ' Step 2 - Check PDF definitely not yet had Logo applied ' );
   
   return cb( null )
 
@@ -151,7 +153,7 @@ function copyPdf( p, cb  ) {
 
   var cmd;
 
-  log.v( p.pdf + ' Step 3 - Backup Original PDF ' );
+  log.i( p.pdf + ' Step 3 - Backup Original PDF ' );
   
   cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
 
@@ -175,9 +177,9 @@ function auditLogCopyPdf( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 3a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
 
-  comments = 'LOGO | STEP1 | CopyPdf | Original JDE PDF copied to work directory'; 
+  comments = 'LOGO_STEP1_CopyPdf_Original JDE PDF copied to work directory'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
@@ -197,7 +199,7 @@ function applyLogo( p, cb  ) {
     pdfOutput,
     cmd;
 
-  log.v( p.pdf + ' Step 4 - Apply Logo ' );
+  log.i( p.pdf + ' Step 4 - Apply Logo ' );
 
   pdfInput = "/home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
   pdfOutput = '/home/shareddata/wrkdir/' + p.pdf;
@@ -224,9 +226,9 @@ function auditLogLogoApply( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 4a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 4a - Write Audit Entry ' );
 
-  comments = 'LOGO | STEP2 | ApplyLogo | Dlink Logo added to working copy of Original JDE PDF'; 
+  comments = 'LOGO_STEP2_ApplyLogo_Dlink Logo added to working copy of Original JDE PDF'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
@@ -247,7 +249,7 @@ function replaceJdePdf( p, cb  ) {
     pdfOutput,
     cmd;
 
-  log.v( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
+  log.i( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
   
   pdfWithLogos = "/home/shareddata/wrkdir/" + p.pdf;
   jdePrintQueue = "/home/pdfdata/" + p.pdf,
@@ -273,9 +275,9 @@ function auditLogJdePdfReplaced( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 5a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 5a - Write Audit Entry ' );
 
-  comments = 'LOGO | STEP3 | JdePdfReplaced | JDE PrintQueue pdf replaced with Logo version from work directory'; 
+  comments = 'LOGO_STEP3_JdePdfReplaced_JDE PrintQueue pdf replaced with Logo version from work directory'; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
@@ -292,7 +294,7 @@ function auditLogJdePdfReplaced( p, cb  ) {
 // E.g. When Logo processing done change Pdf Queue entry status from say 100 to 200 (Email check next)
 function updateProcessQueueStatus( p, cb  ) {
 
-  log.v( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Logo done ' );
+  log.i( p.pdf + ' Step 6 - Update PDF process Queue entry to next status as Logo done ' );
   audit.updatePdfQueueStatus( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusTo, function( err, result ) {
     if ( err ) {
       return cb( err )
@@ -309,9 +311,9 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 
   var comments;
 
-  log.v( p.pdf + ' Step 6a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 6a - Write Audit Entry ' );
 
-  comments = 'LOGO | STEP4 | QueuedPdfStatusChanged | LOGO COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
+  comments = 'LOGO_STEP4_QueuedPdfStatusChanged_LOGO COMPLETE - Queued Pdf entry now at status ' + p.statusTo; 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
@@ -327,7 +329,7 @@ function auditLogQueuedPdfStatusChanged( p, cb  ) {
 // Release Lock entry for this PDF - Called when processing complete or if error
 function finalStep( p  ) {
 
-  log.v( p.pdf + ' finalStep - Release Lock ' );
+  log.i( p.pdf + ' finalStep - Release Lock ' );
 
   lock.removeContainerLock( p.mycn, p.row, p.hostname, function( err, result ) {
 
