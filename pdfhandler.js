@@ -59,7 +59,7 @@ function startQueueProcessor() {
   log.i( '' ); 
   log.i( 'Polling Interval : ' + pollInterval);
   log.i( '' ); 
-  log.i( 'Pick up Queued PDF files at status ' + processFromStatus + ' - apply Logo - move to status ' + processToStatus ); 
+  log.i( 'Pick up Queued PDF files at status ' + processFromStatus + ' - process then - move to status ' + processToStatus ); 
   log.i( '' );
 
   // Handle process exit from DOCKER STOP, system interrupts, uncaughtexceptions or CTRL-C 
