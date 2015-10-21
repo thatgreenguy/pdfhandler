@@ -371,7 +371,9 @@ module.exports.doMail = function( jdeJob, mailOptions, postMailCb ) {
   if ( ! to ) {
  
     log.w( 'No TO recipient defined - unable to send this email' );
+    mailOptions.mailenabled = 'N';
     email = 'N';
+    return postMailCb( null );
 
   }
 
