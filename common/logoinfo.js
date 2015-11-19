@@ -37,14 +37,14 @@ module.exports.checkPdflogoSetup = function( p, cbWhenDone ) {
       log.e( 'PDF ' + p.pdf + ' Failed fetching PDFLOGO Setup ' + err );
       log.e( 'PDF ' + p.pdf + err );
 
-      return cbWhenDone;
+      return cbWhenDone( err );
 
     } else { 
 
       log.d( 'PDF ' + p.pdf + ' Fetched PDFLOGO Setup OK ' );
       log.d( 'PDF ' + p.pdf + res );
 
-      return cbWhenDone;
+      return cbWhenDone( null );
 
     }
   });
@@ -78,7 +78,7 @@ function fetchLogoVersionSetup( p, cb ) {
   binds = [],
   count = 0;
 
-  query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crpgm = '";
+  query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crcfgsid = 'PDFLOGO' AND crpgm = '";
   query += p.pdfReportName + "' AND crvernm = '" + p.pdfVersionName + "'";
 
   log.d( 'PDF ' + p.pdf + ' : ' + query );
@@ -143,7 +143,7 @@ function fetchLogoReportSetup( p, cb ) {
   } else {
 
     // If no version override in force then check the default *ALL to see if LOGO should be applied to this Report
-    query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crpgm = '";
+    query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crcfgsid = 'PDFLOGO' AND crpgm = '";
     query += p.pdfReportName + "' AND crvernm = '*ALL' ";
 
     log.d( 'PDF ' + p.pdf + ' : ' + query );
