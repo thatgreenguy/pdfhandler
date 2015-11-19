@@ -210,7 +210,11 @@ function copyPdf( p, cb  ) {
 
   var cmd;
 
-  if ( p.applyLogo === 'Y' ) { 
+  if ( p.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 3 - Backup Original PDF ' );
   
@@ -236,7 +240,11 @@ function auditLogCopyPdf( p, cb  ) {
 
   var comments;
 
-  if ( p.applyLogo === 'Y' ) { 
+  if ( p.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
 
@@ -260,7 +268,11 @@ function applyLogo( p, cb  ) {
     pdfOutput,
     cmd;
 
-  if ( p.applyLogo === 'Y' ) { 
+  if ( p.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 4 - Apply Logo ' );
 
@@ -289,7 +301,11 @@ function auditLogLogoApply( p, cb  ) {
 
   var comments;
 
-  if ( p.applyLogo === 'Y' ) { 
+  if ( p.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 4a - Write Audit Entry ' );
 
@@ -313,8 +329,11 @@ function replaceJdePdf( p, cb  ) {
     pdfOutput,
     cmd;
 
+  if ( p.applyLogo !== 'Y' ) { 
 
-  if ( p.applyLogo === 'Y' ) { 
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
    
@@ -342,7 +361,11 @@ function auditLogJdePdfReplaced( p, cb  ) {
 
   var comments;
 
-  if ( p.applyLogo === 'Y' ) { 
+  if ( p.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
 
     log.i( p.pdf + ' Step 5a - Write Audit Entry ' );
 
