@@ -10,9 +10,11 @@
 
 
 var oracledb = require( 'oracledb' ),
-  async = require( './async' ),
+  async = require( 'async' ),
   odb = require( './odb.js' ),
-  log = require( './logger.js' );
+  log = require( './logger.js' ),
+  jdeEnv = process.env.JDE_ENV,
+  jdeEnvDb = process.env.JDE_ENV_DB;
 
 
 // Functions -
@@ -50,7 +52,7 @@ module.exports.checkPdflogoSetup = function( p, cbWhenDone ) {
 
 
 // Extract Report and version name components of PDF entry name - make available in p 
-function splitPdfName = function( p, cb ) {
+function splitPdfName( p, cb ) {
 
   var wka;
 
@@ -63,92 +65,26 @@ function splitPdfName = function( p, cb ) {
   log.d( 'Splitting PDF Name : Report is : ' + p.pdfReportName );
   log.d( 'Splitting PDF Name : Version is : ' + p.pdfVersionName );
 
-  return cb;  
+  return cb( null );  
 
 }
 
 
 // Check for PDFLOGO version override setup entry for the current PDF entry being processed
 // If found then Logo should be applied using retrieved image name and coordinates
-function fetchLogoVersionSetup = function( p, cb ) {
+function fetchLogoVersionSetup( p, cb ) {
 
   var query,
   binds = [],
   count = 0;
 
-  query = "SELECT crtaskmisc FROM jdeEnvDb.F559890 WHERE crpgm = '";
+  query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crpgm = '";
   query += p.pdfReportName + "' AND crvernm = '" + p.pdfVersionName + "'";
 
   log.d( 'PDF ' + p.pdf + ' : ' + query );
 
   p.dbc.execute( query, [], { }, function( err, rs ) {
         
-  if ( err ) { 
-
-    log.d( 'PDF ' + p.pdf + ' : DB Error unable to fetch PDFLOGO Setup records' );
-    log.d( 'PDF ' + p.pdf + ' : ' + err.message );
-
-    return cb( err );
-
-  } else {
-
-    count = rs.rows.length;
-    log.d( 'PDF ' + p.pdf + ' : Found ' + count + ' PDFLOGO setup records' );
-
-    // PDFLOGO setup records - there could be none, 1 or 2
-    // If more than 2 just consider first 2 as only supposed to create a report level and/or version level entry
-    // for Logo processing - Note: version setup overrides report setup
-
-
-    if ( count > 0 ) {
-
-      p.applyLogo = 'Y'
-
-      log.d( 'PDF ' + p.pdf + ' : PDFLOGO Version override found' );
-      log.d( 'PDF ' + p.pdf + ' : Row data : ' + rs.rows[ 0 ] );
-        
-      p.logoImage = '';
-      p.logoX = 1;
-      p.logoY = 1;
-
-    } else { 
-
-      log.d( 'PDF ' + p.pdf + ' : No PDFLOGO Version override' );
-
-      p.applyLogo = 'N'
-     
-    }
-
-    return cb( null );
-
-  }
-}
-
-
-// Check for PDFLOGO '*ALL' setup entry for the current PDF entry being processed
-// If found then Logo should be applied using retrieved image name and coordinates
-function fetchLogoReportSetup = function( p, cb ) {
-
-  var query,
-  binds = [],
-  count = 0;
-
-  // If already determined that we are applying a Logo then skip the default *ALL check
-  // as specific Version override already found
-  if ( p.applyLogo === 'Y' ) {
-
-    return cb( null );
-
-  } else {
-
-    // If no version override in force then check the default *ALL to see if LOGO should be applied to this Report
-    query = "SELECT crtaskmisc FROM jdeEnvDb.F559890 WHERE crpgm = '";
-    query += p.pdfReportName + "' AND crvernm = '*ALL' ";
-
-    log.d( 'PDF ' + p.pdf + ' : ' + query );
-
-    p.dbc.execute( query, [], { }, function( err, rs ) {
-         
     if ( err ) { 
 
       log.d( 'PDF ' + p.pdf + ' : DB Error unable to fetch PDFLOGO Setup records' );
@@ -169,8 +105,8 @@ function fetchLogoReportSetup = function( p, cb ) {
 
         p.applyLogo = 'Y'
 
-        log.d( 'PDF ' + p.pdf + ' : PDFLOGO *ALL setup entry found' );
-        log.d( 'PDF ' + p.pdf + ' : Row : ' + rs.rows[ 0 ] );
+        log.d( 'PDF ' + p.pdf + ' : PDFLOGO Version override found' );
+        log.d( 'PDF ' + p.pdf + ' : Row data : ' + rs.rows[ 0 ] );
         
         p.logoImage = '';
         p.logoX = 1;
@@ -178,13 +114,79 @@ function fetchLogoReportSetup = function( p, cb ) {
 
       } else { 
 
-        log.d( 'PDF ' + p.pdf + ' : No PDFLOGO setup found' );
-        p.applyLogo = 'N'
+        log.d( 'PDF ' + p.pdf + ' : No PDFLOGO Version override' );
 
+        p.applyLogo = 'N'
+     
       }
 
-      return cb( null );  
-
+      return cb( null );
     }
+  });
+}
+
+
+// Check for PDFLOGO '*ALL' setup entry for the current PDF entry being processed
+// If found then Logo should be applied using retrieved image name and coordinates
+function fetchLogoReportSetup( p, cb ) {
+
+  var query,
+  binds = [],
+  count = 0;
+
+  // If already determined that we are applying a Logo then skip the default *ALL check
+  // as specific Version override already found
+  if ( p.applyLogo === 'Y' ) {
+
+    return cb( null );
+
+  } else {
+
+    // If no version override in force then check the default *ALL to see if LOGO should be applied to this Report
+    query = "SELECT crtaskmisc FROM " + jdeEnvDb.trim() + ".F559890 WHERE crpgm = '";
+    query += p.pdfReportName + "' AND crvernm = '*ALL' ";
+
+    log.d( 'PDF ' + p.pdf + ' : ' + query );
+
+    p.dbc.execute( query, [], { }, function( err, rs ) {
+         
+      if ( err ) { 
+
+        log.d( 'PDF ' + p.pdf + ' : DB Error unable to fetch PDFLOGO Setup records' );
+        log.d( 'PDF ' + p.pdf + ' : ' + err.message );
+
+        return cb( err );
+
+      } else {
+
+        count = rs.rows.length;
+        log.d( 'PDF ' + p.pdf + ' : Found ' + count + ' PDFLOGO setup records' );
+
+        // PDFLOGO setup records - there could be none, 1 or 2
+        // If more than 2 just consider first 2 as only supposed to create a report level and/or version level entry
+        // for Logo processing - Note: version setup overrides report setup
+
+        if ( count > 0 ) {
+
+          p.applyLogo = 'Y'
+
+          log.d( 'PDF ' + p.pdf + ' : PDFLOGO *ALL setup entry found' );
+          log.d( 'PDF ' + p.pdf + ' : Row : ' + rs.rows[ 0 ] );
+        
+          p.logoImage = '';
+          p.logoX = 1;
+          p.logoY = 1;
+
+        } else { 
+
+          log.d( 'PDF ' + p.pdf + ' : No PDFLOGO setup found' );
+          p.applyLogo = 'N'
+
+        }
+
+        return cb( null );  
+
+      }
+    });
   }
 }

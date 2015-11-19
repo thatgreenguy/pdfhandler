@@ -18,6 +18,7 @@ var oracledb = require( 'oracledb' ),
   lock = require( './lock.js' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
+  logoinfo = require( './logoinfo.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
   dirLocalJdePdf = process.env.DIR_SHAREDDATA,
   jdeEnv = process.env.JDE_ENV,
@@ -93,7 +94,8 @@ function validConnection( cn, p ) {
 
   async.series([
     function( next ) { placeLock( p, next ) }, 
-    function( next ) { confirmLogoReady( p, next )}, 
+    function( next ) { confirmWaitingLogo( p, next )}, 
+    function( next ) { fetchPdflogoSetup( p, next )}, 
     function( next ) { copyPdf( p, next )}, 
     function( next ) { auditLogCopyPdf( p, next )}, 
     function( next ) { applyLogo( p, next )}, 
@@ -137,13 +139,43 @@ function placeLock( p, cb  ) {
 
 
 // Check Audit to make sure it has not been recently processed by any other instance of this app
-function confirmLogoReady( p, cb  ) {
+function confirmWaitingLogo( p, cb  ) {
 
   // step only required if we start running multiple instances.... see reference code at bottom
   // this feature not yet implemeneted!!
-  log.i( p.pdf + ' Step 2 - Check PDF definitely not yet had Logo applied ' );
+  log.i( p.pdf + ' Step 2 - Check Audit file to ensure PDF definitely not yet had Logo applied ' );
   
   return cb( null )
+
+}
+
+
+// Fetch PDFLOGO setup entries for the current PDF
+function fetchPdflogoSetup( p, cb  ) {
+
+  log.i( p.pdf + ' Step 2a - Fetch PDFLOGO setup/configuration entries ' );
+  logoinfo.checkPdflogoSetup( p, function( err, res ) {
+
+    if ( err ) {
+
+      log.d( p.pdf + ' Step 2a - Error whilst retrieving PDFLOGO setup/config entries : ' + err );
+
+      return cb( err )
+ 
+    } else {
+
+      log.d( p.pdf + ' Step 2a - PDFLOGO setup/config entry check okay : ' );
+
+      if ( p.applyLogo === 'Y' ) {
+        log.d( p.pdf + ' Step 2a - Apply Logo ' );     
+      } else {
+        log.d( p.pdf + ' Step 2a - Do Not Apply Logo ' );
+      } 
+ 
+      return cb( null )
+
+   }
+  });
 
 }
 
@@ -362,49 +394,4 @@ function finalStep( p  ) {
       }
     }
   }); 
-}
-
-
-
-// =================================================== OLD ===============
-// Called when exclusive lock has been successfully placed to process the PDF file
-function OLDprocessLockedPdfFile(dbCn, record, hostname ) {
-
-    var query,
-        countRec,
-        count,
-        cb = null;
-
-    log.info( 'JDE PDF ' + record[ 0 ] + " - Lock established" );
-
-    // Check this PDF file has definitely not yet been processed by any other pdfHandler instance
-    // that may be running concurrently
-
-    query = "SELECT COUNT(*) FROM jdeEnvDb.F559859 WHERE pafndfuf2 = '";
-    query += record[0] + "'";
-
-    dbCn.execute( query, [], { }, function( err, result ) {
-        if ( err ) { 
-            log.debug( err.message );
-            return;
-        };
-
-        countRec = result.rows[ 0 ];
-        count = countRec[ 0 ];
-        if ( count > 0 ) {
-            log.info( 'JDE PDF ' + record[ 0 ] + " - Already Processed - Releasing Lock." );
-            lock.removeLock( record, hostname );
-
-        } else {
-             log.info( 'JDE PDF ' + record[0] + ' - Processing Started' );
-
-             // This PDF file has not yet been processed and we have the lock so process it now.
-             // Note: Lock will be removed if all process steps complete or if there is an error
-             // Last process step creates an audit entry which prevents file being re-processed by future runs 
-             // so if error and lock removed - no audit entry therefore file will be re-processed by future run (recovery)	
-             
-             processPDF( record, hostname ); 
-
-        }
-    }); 
 }
