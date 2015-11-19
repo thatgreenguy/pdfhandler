@@ -96,6 +96,7 @@ function validConnection( cn, p ) {
     function( next ) { placeLock( p, next ) }, 
     function( next ) { confirmWaitingLogo( p, next )}, 
     function( next ) { fetchPdflogoSetup( p, next )}, 
+    function( next ) { auditLogLogoSetup( p, next )}, 
     function( next ) { copyPdf( p, next )}, 
     function( next ) { auditLogCopyPdf( p, next )}, 
     function( next ) { applyLogo( p, next )}, 
@@ -180,38 +181,18 @@ function fetchPdflogoSetup( p, cb  ) {
 }
 
 
-// Make a backup copy of the original JDE PDF file
-function copyPdf( p, cb  ) {
-
-  var cmd;
-
-  log.i( p.pdf + ' Step 3 - Backup Original PDF ' );
-  
-  cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
-
-  log.d( "JDE PDF " + p.pdf + " - Make backup copy of original JDE PDF file in work directory" );
-  log.d( cmd );
-
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err ) {
-      log.d( ' ERROR: ' + err );
-      return cb( err, stdout + stderr + " - Failed" );
-    } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
-    }
-  });
-  
-}
-
-
-// Write Audit Entry showing CopyPdf Step completed
-function auditLogCopyPdf( p, cb  ) {
+// Write Audit Entry showing Whether Logo should be applied or not as per Setup/Config
+function auditLogLogoSetup( p, cb  ) {
 
   var comments;
 
-  log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
+  log.i( p.pdf + ' Step 2b - Write Audit Entry ' );
 
-  comments = 'LOGO_STEP1_CopyPdf_Original JDE PDF copied to work directory'; 
+  if ( p.applyLogo === 'Y' ) { 
+    comments = 'LOGO_STEP2_ApplyLogo_YES'; 
+  } else {
+    comments = 'LOGO_STEP2_ApplyLogo_NO'; 
+  } 
 
   audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
     if ( err ) {
@@ -221,6 +202,54 @@ function auditLogCopyPdf( p, cb  ) {
     }
   }); 
   
+}
+
+
+// Make a backup copy of the original JDE PDF file
+function copyPdf( p, cb  ) {
+
+  var cmd;
+
+  if ( p.applyLogo === 'Y' ) { 
+
+    log.i( p.pdf + ' Step 3 - Backup Original PDF ' );
+  
+    cmd = "cp /home/pdfdata/" + p.pdf + " /home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
+
+    log.d( "JDE PDF " + p.pdf + " - Make backup copy of original JDE PDF file in work directory" );
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err ) {
+        log.d( ' ERROR: ' + err );
+        return cb( err, stdout + stderr + " - Failed" );
+      } else {
+        return cb( null, stdout + ' ' + stderr + " - Done" );
+      }
+    });
+  }
+}
+
+
+// Write Audit Entry showing CopyPdf Step completed
+function auditLogCopyPdf( p, cb  ) {
+
+  var comments;
+
+  if ( p.applyLogo === 'Y' ) { 
+
+    log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
+
+    comments = 'LOGO_STEP1_CopyPdf_Original JDE PDF copied to work directory'; 
+
+    audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
+      if ( err ) {
+        return cb( err )
+      } else {
+        return cb( null )
+      }
+    }); 
+  }  
 }
 
 
@@ -231,25 +260,27 @@ function applyLogo( p, cb  ) {
     pdfOutput,
     cmd;
 
-  log.i( p.pdf + ' Step 4 - Apply Logo ' );
+  if ( p.applyLogo === 'Y' ) { 
 
-  pdfInput = "/home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
-  pdfOutput = '/home/shareddata/wrkdir/' + p.pdf;
-  cmd = "node ./src/pdfaddlogo.js " + pdfInput + " " + pdfOutput;
+    log.i( p.pdf + ' Step 4 - Apply Logo ' );
 
-  log.v( "JDE PDF " + p.pdf + " - Read original creating new PDF in work Directory with logos" );
-  log.d( cmd );
+    pdfInput = "/home/shareddata/wrkdir/" + p.pdf.trim() + "_ORIGINAL";
+    pdfOutput = '/home/shareddata/wrkdir/' + p.pdf;
+    cmd = "node ./src/pdfaddlogo.js " + pdfInput + " " + pdfOutput;
 
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.d( cmd + ' ERROR: ' + err );
-      log.w( 'Errors when applying Logo: Check but likely due to Logo already applied in prior run: ');
-      return cb( err, stdout + stderr + " - Failed" );
-    } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
-    }
-  });
-  
+    log.v( "JDE PDF " + p.pdf + " - Read original creating new PDF in work Directory with logos" );
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err !== null ) {
+        log.d( cmd + ' ERROR: ' + err );
+        log.w( 'Errors when applying Logo: Check but likely due to Logo already applied in prior run: ');
+        return cb( err, stdout + stderr + " - Failed" );
+      } else {
+        return cb( null, stdout + ' ' + stderr + " - Done" );
+      }
+    });
+  }  
 }
 
 
@@ -258,20 +289,21 @@ function auditLogLogoApply( p, cb  ) {
 
   var comments;
 
-  log.i( p.pdf + ' Step 4a - Write Audit Entry ' );
+  if ( p.applyLogo === 'Y' ) { 
 
-  comments = 'LOGO_STEP2_ApplyLogo_Dlink Logo added to working copy of Original JDE PDF'; 
+    log.i( p.pdf + ' Step 4a - Write Audit Entry ' );
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
-    if ( err ) {
-      return cb( err )
-    } else {
-      return cb( null )
-    }
-  }); 
-  
+    comments = 'LOGO_STEP2_ApplyLogo_Dlink Logo added to working copy of Original JDE PDF'; 
+
+    audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
+      if ( err ) {
+        return cb( err )
+      } else {
+        return cb( null )
+      }
+    }); 
+  }  
 }
-
 
 
 // Replace JDE generated PDF file with modified Logo copy
@@ -281,24 +313,27 @@ function replaceJdePdf( p, cb  ) {
     pdfOutput,
     cmd;
 
-  log.i( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
-  
-  pdfWithLogos = "/home/shareddata/wrkdir/" + p.pdf;
-  jdePrintQueue = "/home/pdfdata/" + p.pdf,
-  cmd = "mv " + pdfWithLogos + " " + jdePrintQueue;
 
-  log.v( "JDE PDF " + p.pdf + " - Replace JDE output queue PDF with modified Logo version" );
-  log.d( cmd );
+  if ( p.applyLogo === 'Y' ) { 
 
-  exec( cmd, function( err, stdout, stderr ) {
-    if ( err !== null ) {
-      log.debug( cmd + ' ERROR: ' + err );
-      return cb( err, stdout + stderr + " - Failed" );
-    } else {
-      return cb( null, stdout + ' ' + stderr + " - Done" );
-    }
-  });
- 
+    log.i( p.pdf + ' Step 5 - Replace JDE PDF in PrintQueue with Logo version ' );
+   
+    pdfWithLogos = "/home/shareddata/wrkdir/" + p.pdf;
+    jdePrintQueue = "/home/pdfdata/" + p.pdf,
+    cmd = "mv " + pdfWithLogos + " " + jdePrintQueue;
+
+    log.v( "JDE PDF " + p.pdf + " - Replace JDE output queue PDF with modified Logo version" );
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err !== null ) {
+        log.debug( cmd + ' ERROR: ' + err );
+        return cb( err, stdout + stderr + " - Failed" );
+      } else {
+        return cb( null, stdout + ' ' + stderr + " - Done" );
+      }
+    });
+  } 
 }
 
 
@@ -307,18 +342,20 @@ function auditLogJdePdfReplaced( p, cb  ) {
 
   var comments;
 
-  log.i( p.pdf + ' Step 5a - Write Audit Entry ' );
+  if ( p.applyLogo === 'Y' ) { 
 
-  comments = 'LOGO_STEP3_JdePdfReplaced_JDE PrintQueue pdf replaced with Logo version from work directory'; 
+    log.i( p.pdf + ' Step 5a - Write Audit Entry ' );
 
-  audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
-    if ( err ) {
-      return cb( err )
-    } else {
-      return cb( null )
-    }
-  }); 
-  
+    comments = 'LOGO_STEP3_JdePdfReplaced_JDE PrintQueue pdf replaced with Logo version from work directory'; 
+
+    audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
+      if ( err ) {
+        return cb( err )
+      } else {
+        return cb( null )
+      }
+    }); 
+  }  
 }
 
 
