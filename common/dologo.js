@@ -227,8 +227,10 @@ function copyPdf( p, cb  ) {
       if ( err ) {
         log.d( ' ERROR: ' + err );
         return cb( err, stdout + stderr + " - Failed" );
+
       } else {
         return cb( null, stdout + ' ' + stderr + " - Done" );
+
       }
     });
   }
@@ -248,7 +250,7 @@ function auditLogCopyPdf( p, cb  ) {
 
     log.i( p.pdf + ' Step 3a - Write Audit Entry ' );
 
-    comments = 'LOGO_STEP1_CopyPdf_Original JDE PDF copied to work directory'; 
+    comments = 'LOGO_STEP1_CopyPdf ' + p.extraErrorInfo; 
 
     audit.createAuditEntry( p.dbc, p.pdf, p.row[ 2 ], p.hostname, p.statusFrom, comments, function( err, result ) {
       if ( err ) {
