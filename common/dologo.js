@@ -72,19 +72,26 @@ module.exports.doLogo = function( parg, cbDone ) {
 
       // Check shows Mounts in place so handle Logo Processing
       async.series([
-        function( cb ) { checkConfiguration( parg, cb },
-        function( cb ) { updatePdfEntryStatus( parg, cb }
+        function( cb ) { checkConfiguration( parg, cb ) },
+        function( cb ) { lockPdf( parg, cb ) },
+        function( cb ) { copyPdf( parg, cb ) },
+        function( cb ) { applyLogo( parg, cb ) },
+        function( cb ) { replacePdf( parg, cb ) },
+        function( cb ) { updatePdfEntryStatus( parg, cb ) }
 
       ], function( err, result ) {
 
         if ( err ) {
+
+          // When error log last command and result 
+          log.w( parg.cmd );
+          log.w( parg.cmdResult );
 
           log.e( parg.newPdf + ' : Error encountered trying to proces Logo : ' + err );
           releaseLockReturn( parg, cbDone );
 
         } else {
 
-          log.i( parg.newPdf + ' : Logo Processing Complete' );
           releaseLockReturn( parg, cbDone );
 
         }    
@@ -101,6 +108,77 @@ function checkConfiguration( parg, cb ) {
   log.d( parg.newPdf + ' : Check Configuration : Is PDF set up for Logo processing? ' );
 
   parg.applyLogo = 'N';
+  parg.applyLogo = 'Y';
+
+  return cb( null );
+
+}
+
+
+function lockPdf( parg, cb ) {
+
+  // Lock PDF for duration of any Logo processing - need exclusive access
+  log.d( parg.newPdf + ' : Lock PDF : Exclusivity required for Logo processing ' );
+
+
+  return cb( null );
+
+}
+
+
+function copyPdf( parg, cb ) {
+
+  var cmd;
+
+  // Copy PDF from JDE Output Queue to working folder (on Aix) - append _ORIGINAL to PDF name
+  log.d( parg.newPdf + ' : Copy PDF : Copy original JDE PDF (from Output Queue) to working copy appended with "_ORIGINAL"' );
+  parg.cmd = 'copyPdf : ';
+  parg.cmdResult = 'copyPdf : ';
+
+  if ( parg.applyLogo !== 'Y' ) { 
+
+    return cb( null );
+
+  } else {
+
+    cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + "_ORIGINAL";
+    parg.cmd += cmd;
+    log.d( cmd );
+
+    exec( cmd, function( err, stdout, stderr ) {
+      if ( err ) {
+        parg.cmdResult += 'FAILED : ' + err;
+        log.d( parg.cmdResult );
+        return cb( err, parg.cmdResult );
+
+      } else {
+        parg.cmdResult += 'OK : ' + stdout + ' ' + stderr;
+        return cb( null, parg.cmdResult );
+
+      }
+    });
+  }
+
+}
+
+
+function applyLogo( parg, cb ) {
+
+  // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
+  log.d( parg.newPdf + ' : Apply Logo and create new PDF file with same name as original but with Logo images applied' );
+
+
+
+  return cb( null );
+
+}
+
+
+function replacePdf( parg, cb ) {
+
+  // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
+  log.d( parg.newPdf + ' : Replace original Pdf (in JDE PrintQueue) with new Logo Pdf in working directory' );
+
 
   return cb( null );
 
@@ -295,7 +373,7 @@ function auditLogLogoSetup( p, cb  ) {
 
 
 // Make a backup copy of the original JDE PDF file
-function copyPdf( p, cb  ) {
+function OLDcopyPdf( p, cb  ) {
 
   var cmd;
 
@@ -353,7 +431,7 @@ function auditLogCopyPdf( p, cb  ) {
 
 
 // Apply Logo to each page
-function applyLogo( p, cb  ) {
+function OLDapplyLogo( p, cb  ) {
 
   var pdfInput,
     pdfOutput,
@@ -414,7 +492,7 @@ function auditLogLogoApply( p, cb  ) {
 
 
 // Replace JDE generated PDF file with modified Logo copy
-function replaceJdePdf( p, cb  ) {
+function OLDreplaceJdePdf( p, cb  ) {
 
   var pdfInput,
     pdfOutput,
