@@ -66,6 +66,9 @@ module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
       rows = result.rows;
       rowCount = result.rows.length;
 
+      log.d( parg.newPdf + ' : rows     : ' + rows );
+      log.d( parg.newPdf + ' : rowCount : ' + rowCount );
+
       if ( rowCount > 0 ) {
  
         parg.applyLogo = 'Y';
@@ -73,8 +76,11 @@ module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
         for ( var i = 0; i < rowCount; i++ ) {
 
           row = result.rows[ i ];
+          log.d( parg.newPdf + ' : row     : ' + row );
+          log.d( parg.newPdf + ' : row     : ' + row[ 1 ] );
+          log.d( parg.newPdf + ' : pdfVersionName : ' + parg.pdfVersionName );
 
-          if ( parg.pdfVersionName == row[ 1 ] ) { 
+          if ( parg.pdfVersionName == row[ 1 ].trim() ) { 
 
             configVersion = row[ 0 ];
 
@@ -84,6 +90,9 @@ module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
 
           }
         }
+
+        log.d( parg.newPdf + ' : Report Config  : ' + configAll );
+        log.d( parg.newPdf + ' : Version Config : ' + configVersion );
 
         // Have now checked all None, 1 or 2 config rows need to decide if using Logo config for *ALL or specific Version
         if ( configVersion !== null ) {
