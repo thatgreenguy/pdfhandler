@@ -116,6 +116,11 @@ function checkConfiguration( parg, cb ) {
 
     } else {
 
+      if ( parg.applyLogo == 'Y' ) {
+        log.v( parg.newPdf + ' : PDFLOGO : Required ' );    
+      } else {
+        log.v( parg.newPdf + ' : PDFLOGO : Not Required just Advance Status  ' );    
+      }
       return cb( null );
 
     }
