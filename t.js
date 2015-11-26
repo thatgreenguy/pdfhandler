@@ -2,17 +2,15 @@ var async = require( 'async' ),
   moment = require( 'moment' ),
   log = require( './common/logger.js' ),
   audit = require( './common/audit.js' ),
-  getlastpdf = require( './getlastpdf.js' ),
   getnewpdf = require( './getnewpdf.js' ),
-  addnewpdf = require( './addnewpdf.js' ),
-  pdfinqueue = require( './pdfinqueue.js' ),
+  dologo = require( './common/dologo.js' ),
+  domail = require( './common/domail.js' ),
   processInfo = process.env.PROCESS_INFO,
   processStatusFrom = process.env.PROCESS_STATUS_FROM,
   processStatusTo = process.env.PROCESS_STATUS_TO,
   pollInterval = process.env.POLLINTERVAL,
   jdeEnv = process.env.JDE_ENV,
-  jdeEnvDb = process.env.JDE_ENV_DB,
-  jdeEnvDbF556110 = process.env.JDE_ENV_DB_F556110;
+  jdeEnvDb = process.env.JDE_ENV_DB;
 
 
 
@@ -32,11 +30,6 @@ async.forever( check, error );
 //
 // function check( cbDone ) 
 // function error( cbDone ) 
-// function checkGetLastPdf( parg, next ) 
-// function checkGetJdeDateTime( parg, next ) 
-// function checkSetMonitorFrom( parg, next ) 
-// function checkGetNewPdf( parg, next ) 
-// function initialisation() 
 
 
 function check( cbDone ) {
@@ -49,9 +42,6 @@ function check( cbDone ) {
   log.d( ' Perform Check ( every ' + pollInterval + ' milliseconds )' );
 
   async.series([
-    function( next ) { checkRemoteMounts( parg, next )  },
-    function( next ) { checkGetJdeDateTime( parg, next )  },
-    function( next ) { checkSetMonitorFrom( parg, next )  },
     function( next ) { checkGetNewPdf( parg, next )  }
   ], function( err, res ) {
 
@@ -64,10 +54,7 @@ function check( cbDone ) {
       
     } else {
 
-      log.v( 'Check Complete : Added ' + parg.pdfAddCount + ' new PDF entries to Queue : Took : ' + moment.duration( checkEnd - checkStart) );  
-      if ( parg.pdfAddErrorCount > 0 ) {
-        log.v( 'Check Complete : Failed to Add ' + parg.pdfAddErrorCount + ' PDF entries to Queue - already added?' );  
-      }
+      log.v( 'Check Complete : Found ' + parg.pdfFoundCount + ' new PDF entries in Queue : Took : ' + moment.duration( checkEnd - checkStart) );  
       setTimeout( cbDone, pollInterval );
 
     }
@@ -84,71 +71,12 @@ function error( cbDone ) {
 }
 
 
-function checkGetLastPdf( parg, next ) {
-
-  getlastpdf.getLastPdf( parg, function( err, result ) {
-
-    if ( err ) {
-      return next( err );
-    }
-
-    log.v( 'Last PDF processed : ' + result );
-    parg.lastPdfRow = result;
-    return next( null );
-
-  });
-}    
-
-
-function checkGetJdeDateTime( parg, next ) {
-
-  getjdedatetime.getJdeDateTime( parg, function( err, result ) {
-
-    if ( err ) {
-      return next( err );
-    }
-
-    log.v( 'JDE (Aix) current System Date/Time : ' + result );
-    return next( null );
-
-  });
-}    
-
-
-function checkSetMonitorFrom( parg, next ) {
-
-  var jdeMoment;
-
-  // Monitoring of the JDE job Control table is done from a particular Date and Time.
-  // Usually the last PDF added to the process queue (F559811) determines this date and time
-  // Idea is that as each new PDF is added to the process queue then the monitor query checks from that point forwards (keeps the query light)
-  // However, if the F559811 is cleared (or empty on first run) then as fallback use the current JDE System Date and Time as the start point for monitoring
-  // Once a new PDF is detected and added to the process queue then monitoring will continue from that point
-
-  if ( parg.monitorFromDate === 0 ) {
-
-    log.i( 'Last PDF check did not manage to set Monitor From Date and Time - F559811 file empty/cleared?' );
-    log.i( 'As fallback - start monitoring from current AIX (JDE System) Date and Time - until next PDF added to F559811 Process Queue' );
-
-    // Save AIX (JDE) Current System Date and Time in human readable format then convert monitor from date/time to JDE format
-    // Factor in a safety offset window of 60 seconds as sometimes monitoring query runs just before trigger data is copied from F986110 to F556110
-    parg.aixDateTime = parg.jdeDate + ' ' + parg.jdeTime;
-    jdeMoment = moment( parg.aixDateTime ).subtract( monitorTimeOffset, 'seconds' );
-    parg.monitorFromDate = audit.getJdeJulianDateFromMoment( jdeMoment );
-    parg.monitorFromTime = jdeMoment.format( 'HHmmss' );
-
-  }
-
-  log.v( 'Monitor for new PDF entries from : ' + parg.monitorFromDate + ' ' + parg.monitorFromTime );
-  return next( null );
-
-}    
-
-
+// perform polling check on F559811 lookingfor new entries to process at from status
 function checkGetNewPdf( parg, next ) {
 
-  parg.pdfAddCount = 0;
-  parg.pdfAddErrorCount = 0;
+  parg.pdfFoundCount = 0;
+  parg.processStatusFrom = processStatusFrom;
+  parg.processStatusTo = processStatusTo;
 
   getnewpdf.getNewPdf( parg, function( err, result ) {
 
@@ -156,52 +84,63 @@ function checkGetNewPdf( parg, next ) {
       return next( err );
     }
 
-    log.v( 'New PDF entries : ' + parg.newPdfRows );
-
+    // Process each new PDF entry discovered
     async.eachSeries( 
       parg.newPdfRows, 
       function( row, cb ) {
       
         log.d( 'Row: ' + row );
-        parg.checkPdf = row[ 0 ];
         parg.newPdfRow = row;
+        parg.newPdf = row[ 0 ];
+        parg.newPdfStatus = row[ 1 ];
 
+        // Same codebase used for Logo and Mail processing (depends on env variable parms)
+        if ( parg.newPdfStatus = '100' ) {
 
-        pdfinqueue.pdfInQueue( parg, function( err, result ) {
+          log.d( parg.newPdf + ' perform Logo processing' ); 
+          dologo.doLogo( parg, function( err, result ) {
 
-          if ( err ) {
+            if ( err ) {
 
-            log.e( parg.checkPdf + ' Error - Unable to verify if in Queue or not ' );
-            return cb( err );
-
-          } else {
-
-            if ( parg.pdfInQueue >= 1 ) {
-              log.d( parg.checkPdf + ' PDF already in Queue - Ignore it ' );
-              return cb( null );
+              log.w( parg.newPdf + ' : Error trying to process for Logo ' );
+              log.w( parg.newPdf + ' : Will try again hoping issue is temporary (network connectivity to DB or Aix printqueue) ' );
+              return cb( err );
 
             } else {
-              log.d( parg.checkPdf + ' PDF is new add to JDE Process Queue ' );
 
-              addnewpdf.addNewPdf( parg, function( err, result ) {
+              log.i( parg.newPdf + ' Logo processing Complete' ); 
+              return cb( null );
 
-                if ( err ) {
+            }
+          });      
 
-                  parg.pdfAddErrorCount += 1;
-                  log.e( row[ 0 ] + ' : Failed to Add to Jde Process Queue : ' + err );
-                  return cb( null);            
+        } else {
+
+          if ( parg.newPdfStatus = '200' ) {
+
+            log.d( parg.newPdf = ' perform Mail processing ' ); 
+            domail.doMail( parg, function( err, result ) { 
+
+              if ( err ) {
+
+                  log.w( parg.newPdf + ' : Error trying to process for Logo ' );
+                  log.w( parg.newPdf + ' : Will try again hoping issue is temporary (network connectivity to DB or Aix printqueue) ' );
+                  return cb( err );
 
                 } else {
 
-                  parg.pdfAddCount += 1;
-                  log.i( row[ 0 ] + ' : New PDF Added to Jde Process Queue ' );
+                  log.i( parg.newPdf + ' Mail processing Complete' ); 
                   return cb( null );
-                }      
-              });
-            }        
-          }
-        });
-     },
+
+                }
+            });      
+          } else {
+
+            log.e( parg.newPdf = ' perform What? Status Code not recognised - check docker environment arguments ' ); 
+
+          }      
+        }         
+      },
       next );
   });
 }
@@ -217,7 +156,6 @@ function initialisation() {
   log.i( '' );
   log.i( '----- JDE Environment    : ' + jdeEnv ); 
   log.i( '----- JDE Database       : ' + jdeEnvDb ); 
-  log.i( '----- JDE Job Control DB : ' + jdeEnvDbF556110 ); 
   log.i( '' );
   log.i( '----- Polling Interval   : ' + pollInterval ); 
   log.i( '' );

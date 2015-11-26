@@ -5,7 +5,6 @@ var async = require( 'async' ),
   audit = require( './common/audit.js' ),
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB,
-  jdeEnvDbF556110 = process.env.JDE_ENV_DB_F556110,
   credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME },
   timeOffset = 0;
   
@@ -27,8 +26,9 @@ module.exports.getNewPdf = function(  pargs, cbWhenDone ) {
       return cbWhenDone( err );
     }  
 
-    sql = "SELECT jpfnffuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + ".F559811 ";
+    sql = "SELECT jpfndfuf2, jpyexpst, jpblkk, jpupmj, jpupmt FROM " + jdeEnvDb.trim() + ".F559811 ";
     sql += " WHERE jpyexpst = " + pargs.processStatusFrom;
+    log.d( sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
       if ( err ) {
@@ -42,6 +42,7 @@ module.exports.getNewPdf = function(  pargs, cbWhenDone ) {
         return cbWhenDone( err );
       }  
 
+      pargs.pdfFoundCount = result.rows.length;
       pargs.newPdfRows = result.rows;
       log.d( 'Read following rows from Jde Job Control : ' + result );
       dbc.release( function( err ) {

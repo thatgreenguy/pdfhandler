@@ -45,6 +45,15 @@ var oracledb = require( 'oracledb' ),
 // function finalStep( p  )
 
 
+module.exports.doMail = function( pargs, cbDone ) {
+
+  log.d( 'Mail processing here...');
+
+  return cbDone( null );
+
+}
+
+
 // Called when Queued PDF file is at status '200' waiting to be E-mailed
 module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
   var pargs;

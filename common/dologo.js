@@ -44,7 +44,19 @@ var oracledb = require( 'oracledb' ),
 //
 
 
-module.exports.doLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
+module.exports.doLogo = function( parg, cbDone ) {
+
+  log.d(' Logo processing here......');
+
+
+  return cbDone( null );
+
+}
+
+
+
+
+module.exports.OLDdoLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
 
   var pargs;
 
