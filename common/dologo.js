@@ -18,6 +18,7 @@ var oracledb = require( 'oracledb' ),
   mounts = require( './mounts.js' ),
   lock = require( './lock.js' ),
   audit = require( './audit.js' ),
+  getlogoconfig = require( './getlogoconfig.js' ),
   logoinfo = require( './logoinfo.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
   dirLocalJdePdf = process.env.DIR_SHAREDDATA,
@@ -104,13 +105,21 @@ module.exports.doLogo = function( parg, cbDone ) {
 
 function checkConfiguration( parg, cb ) {
 
-  // Always release any lock placed on PDF for Logo processing
   log.d( parg.newPdf + ' : Check Configuration : Is PDF set up for Logo processing? ' );
 
-  parg.applyLogo = 'N';
-  parg.applyLogo = 'Y';
+  getlogoconfig.getLogoConfig( parg, function( err, result ) {
 
-  return cb( null );
+    if ( err ) {
+
+      log.e( parg.newPdf + ' : Error trying to get PDFLOGO config/setup : ' + err );    
+      return cb( err );
+
+    } else {
+
+      return cb( null );
+
+    }
+  });  
 
 }
 

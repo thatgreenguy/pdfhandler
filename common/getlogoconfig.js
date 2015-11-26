@@ -1,15 +1,14 @@
 var async = require( 'async' ),
   oracledb = require( 'oracledb' ),
   moment = require( 'moment' ),
-  log = require( './common/logger.js' ),
-  audit = require( './common/audit.js' ),
+  log = require( './logger.js' ),
+  audit = require( './audit.js' ),
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB,
-  credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME },
-  timeOffset = 0;
+  credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
   
 
-module.exports.getLogoConfig = function(  pargs, cbWhenDone ) {
+module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
 
   var p = {},
     sql,
@@ -21,18 +20,18 @@ module.exports.getLogoConfig = function(  pargs, cbWhenDone ) {
     configVersion = null,
     configAll = null;
 
-  pargs.applyLogo = 'N';
-  pargs.logoConfig = '';
+  parg.applyLogo = 'N';
+  parg.logoConfig = '';
 
   log.d( 'Get Connection to query for any Logo configuration setup ' );
 
-  wka = pargs.newPdf.split("_");
+  wka = parg.newPdf.split("_");
 
-  pargs.pdfReportName = wka[0];
-  pargs.pdfVersionName = wka[1];
+  parg.pdfReportName = wka[0];
+  parg.pdfVersionName = wka[1];
 
-  log.d( pargs.newPdf + ' : Report Name : ' + pargs.pdfReportName );
-  log.d( parg.newPdf + ' : Version Name : ' + pargs.pdfVersionName );
+  log.d( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
+  log.d( parg.newPdf + ' : Version Name : ' + parg.pdfVersionName );
 
   oracledb.getConnection( credentials, function( err, dbc ) {
 
@@ -69,13 +68,13 @@ module.exports.getLogoConfig = function(  pargs, cbWhenDone ) {
 
       if ( rowCount > 0 ) {
  
-        pargs.applyLogo = 'Y';
+        parg.applyLogo = 'Y';
         
         for ( var i = 0; i < rowCount; i++ ) {
 
           row = result.rows[ i ];
 
-          if ( pargs.pdfVersionName == row[ 1 ] ) { 
+          if ( parg.pdfVersionName == row[ 1 ] ) { 
 
             configVersion = row[ 0 ];
 
@@ -89,19 +88,19 @@ module.exports.getLogoConfig = function(  pargs, cbWhenDone ) {
         // Have now checked all None, 1 or 2 config rows need to decide if using Logo config for *ALL or specific Version
         if ( configVersion !== null ) {
       
-          log.d( pargs.newPdf + ' : Version specific config applies : ' + configVersion );
-          pargs.logoConfig = configVersion;
+          log.d( parg.newPdf + ' : Version specific config applies : ' + configVersion );
+          parg.logoConfig = configVersion;
 
         } else {
 
-          log.d( pargs.newPdf + ' : Report config applies : ' + configAll );
-          pargs.logoConfig = configAll;
+          log.d( parg.newPdf + ' : Report config applies : ' + configAll );
+          parg.logoConfig = configAll;
 
         }
 
       } else {
 
-        log.d( pargs.newPdf + ' : No PDFLOGO config found );
+        log.d( parg.newPdf + ' : No PDFLOGO config found ' );
 
       }
      
