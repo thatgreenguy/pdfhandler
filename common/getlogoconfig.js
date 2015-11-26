@@ -46,7 +46,7 @@ module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
     // If Version specific entry then Logo config is applicable ONLY to the current PDF report version
   
     sql = "SELECT crtaskmisc, crvernm FROM " + jdeEnvDb.trim() + ".F559890 WHERE crcfgsid = 'PDFLOGO' AND crpgm = '";
-    sql += p.pdfReportName + "' AND ( crvernm = '" + p.pdfVersionName + "' OR crvernm = '*ALL' ) " ;
+    sql += parg.pdfReportName + "' AND ( crvernm = '" + parg.pdfVersionName + "' OR crvernm = '*ALL' ) " ;
     log.d( sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
