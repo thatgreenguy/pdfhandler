@@ -14,9 +14,9 @@
 var oracledb = require( 'oracledb' ),
   async = require( 'async' ),
   exec = require( 'child_process' ).exec,
-  odb = require( './odb.js' ),
-  lock = require( './lock.js' ),
   log = require( './logger.js' ),
+  mounts = require( './mounts.js' ),
+  lock = require( './lock.js' ),
   audit = require( './audit.js' ),
   logoinfo = require( './logoinfo.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
@@ -46,12 +46,89 @@ var oracledb = require( 'oracledb' ),
 
 module.exports.doLogo = function( parg, cbDone ) {
 
-  log.d(' Logo processing here......');
+  log.d( parg.newPdf + ' : Start Logo processing ......');
 
+  // Check Remote Mounts in place for access to JDE PDF files in JDE Output Queue
+  mounts.checkRemoteMounts( function( err, result ) {
+
+    if ( err ) { 
+
+      mounts.establishRemoteMounts( function( err, result ) {
+
+        if ( err ) {
+
+          log.w( parg.newPdf + ' : Problem with Remote Mounts - Failed to reconnect - Try again shortly' );
+          return cbDone( err );
+
+        } else {
+
+          log.w( parg.newPdf + ' : Problem with Remote Mounts - Reconnected Ok - continue with Logo processing shortly' );
+          return cbDone( null );       
+
+        }
+      });
+
+    } else {
+
+      // Check shows Mounts in place so handle Logo Processing
+      async.series([
+        function( cb ) { checkConfiguration( parg, cb },
+        function( cb ) { updatePdfEntryStatus( parg, cb }
+
+      ], function( err, result ) {
+
+        if ( err ) {
+
+          log.e( parg.newPdf + ' : Error encountered trying to proces Logo : ' + err );
+          releaseLockReturn( parg, cbDone );
+
+        } else {
+
+          log.i( parg.newPdf + ' : Logo Processing Complete' );
+          releaseLockReturn( parg, cbDone );
+
+        }    
+      });
+    }
+  });
+
+}
+
+
+function checkConfiguration( parg, cb ) {
+
+  // Always release any lock placed on PDF for Logo processing
+  log.d( parg.newPdf + ' : Check Configuration : Is PDF set up for Logo processing? ' );
+
+  parg.applyLogo = 'N';
+
+  return cb( null );
+
+}
+
+
+function updatePdfEntryStatus( parg, cb ) {
+
+  // Logo processing completed so shuffle PDF Entry to next Status
+  log.d( parg.newPdf + ' : Update PDF Entry Process Queue Status : Logo Processing Done ' );
+
+  return cb( null );
+
+}
+
+
+function releaseLockReturn( parg, cbDone ) {
+
+  // Logo processing complete without error - release lock
+  // logo processing errored then release lock anyway - allows attempt to recover on subsequent runs
+
+  log.d( parg.newPdf + ' : Release Lock on PDF entry ' );
 
   return cbDone( null );
 
 }
+
+
 
 
 
