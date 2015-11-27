@@ -40,7 +40,7 @@ module.exports.doLogo = function( parg, cbDone ) {
 
     } else {
 
-      parg.cmd = 'Start Logo Processing';
+      parg.cmd = 'BEGIN LOGO Processing';
       parg.cmdResult = ' ';
 
       // Check shows Mounts in place so handle Logo Processing
@@ -51,11 +51,11 @@ module.exports.doLogo = function( parg, cbDone ) {
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
-        function( cb ) { auditLog( parg, cb ) },
+        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { applyLogo( parg, cb ) },
-        function( cb ) { auditLog( parg, cb ) },
+        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { replacePdf( parg, cb ) },
-        function( cb ) { auditLog( parg, cb ) },
+        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 
@@ -83,7 +83,34 @@ module.exports.doLogo = function( parg, cbDone ) {
 }
 
 
-function auditLog( parg, cb ) {
+function auditLogOptional( parg, cb ) { 
+
+  if ( parg.applyLogo == 'Y' ) { 
+
+    parg.comments = parg.cmd + ' ' + parg.cmdResult; 
+
+    auditlog.auditLog( parg, function( err, result ) {
+
+      if ( err ) {
+
+        log.e( parg.newPdf + ' : Failed to write Audit Log Entry to JDE : DB error? ' + err );  
+        parg.cmdResult += 'FAILED : ' + result;
+        return cb( err );
+
+      } else {
+
+        log.d( parg.newPdf + ' : Audit Log Entry : ' + result );  
+        parg.cmdResult += 'OK : ' + result;
+        return cb( null );
+
+      }
+    });
+  }
+
+}
+
+
+function auditLog( parg, cb ) { 
 
   parg.comments = parg.cmd + ' ' + parg.cmdResult; 
 
