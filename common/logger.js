@@ -9,10 +9,11 @@
 
 
 var winston = require('winston');
-
+  
 winston.emitErrs = true;
 
 var loglevel = process.env.LOG_LEVEL;
+
 if ( typeof( loglevel ) === 'undefined' ) loglevel = 'debug'
 
 var logger = new winston.Logger({
