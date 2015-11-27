@@ -5,6 +5,7 @@ var oracledb = require( 'oracledb' ),
   mounts = require( './mounts.js' ),
   audit = require( './audit.js' ),
   getlogoconfig = require( './getlogoconfig.js' ),
+  auditlog = require( './auditlog.js' ),
   lockpdf = require( './lockpdf.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
   updatepdfstatus = require( './updatepdfstatus.js' ),
@@ -16,8 +17,6 @@ var oracledb = require( 'oracledb' ),
 
 
 module.exports.doLogo = function( parg, cbDone ) {
-
-  log.d( parg.newPdf + ' : Start Logo processing ......');
 
   // Check Remote Mounts in place for access to JDE PDF files in JDE Output Queue
   mounts.checkRemoteMounts( function( err, result ) {
@@ -41,14 +40,24 @@ module.exports.doLogo = function( parg, cbDone ) {
 
     } else {
 
+      parg.cmd = 'Start Logo Processing';
+      parg.cmdResult = ' ';
+
       // Check shows Mounts in place so handle Logo Processing
       async.series([
+        function( cb ) { auditLog( parg, cb ) },
         function( cb ) { lockPdf( parg, cb ) },
+        function( cb ) { auditLog( parg, cb ) },
         function( cb ) { checkConfiguration( parg, cb ) },
+        function( cb ) { auditLog( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
+        function( cb ) { auditLog( parg, cb ) },
         function( cb ) { applyLogo( parg, cb ) },
+        function( cb ) { auditLog( parg, cb ) },
         function( cb ) { replacePdf( parg, cb ) },
-        function( cb ) { updatePdfEntryStatus( parg, cb ) }
+        function( cb ) { auditLog( parg, cb ) },
+        function( cb ) { updatePdfEntryStatus( parg, cb ) },
+        function( cb ) { auditLog( parg, cb ) }
 
       ], function( err, result ) {
 
@@ -63,10 +72,35 @@ module.exports.doLogo = function( parg, cbDone ) {
 
         } else {
 
+          log.i( parg.newPdf + ' : Logo Processing Completed ' );
           releaseLockReturn( parg, cbDone );
 
         }    
       });
+    }
+  });
+
+}
+
+
+function auditLog( parg, cb ) {
+
+  parg.comments = parg.cmd + ' ' + parg.cmdResult; 
+
+  auditlog.auditLog( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.e( parg.newPdf + ' : Failed to write Audit Log Entry to JDE : DB error? ' + err );  
+      parg.cmdResult += 'FAILED : ' + result;
+      return cb( err );
+
+    } else {
+
+      log.d( parg.newPdf + ' : Audit Log Entry : ' + result );  
+      parg.cmdResult += 'OK : ' + result;
+      return cb( null );
+
     }
   });
 
@@ -78,8 +112,8 @@ module.exports.doLogo = function( parg, cbDone ) {
 function lockPdf( parg, cb ) {
 
   log.v( parg.newPdf + ' : Lock PDF : Exclusivity required for Logo processing ' );
-  parg.cmd = 'lockPdf : ';
-  parg.cmdResult = 'lockPdf : ';
+  parg.cmd = 'LOCK PDF | ';
+  parg.cmdResult = ' ';
 
   lockpdf.lockPdf( parg, function( err, result ) {
 
@@ -104,20 +138,25 @@ function lockPdf( parg, cb ) {
 function checkConfiguration( parg, cb ) {
 
   log.v( parg.newPdf + ' : Check Configuration : Is PDF set up for Logo processing? ' );
+  parg.cmd = 'CHECK CONFIG | ';
+  parg.cmdResult = ' ';
 
   getlogoconfig.getLogoConfig( parg, function( err, result ) {
 
     if ( err ) {
 
       log.e( parg.newPdf + ' : Error trying to get PDFLOGO config/setup : ' + err );    
+      parg.cmdResult += 'FAILED : ' + result;
       return cb( err );
 
     } else {
 
       if ( parg.applyLogo == 'Y' ) {
         log.v( parg.newPdf + ' : PDFLOGO : Required ' );    
+        parg.cmdResult += 'OK : PDFLOGO Required ' + result;
       } else {
         log.v( parg.newPdf + ' : PDFLOGO : Not Required just Advance Status  ' );    
+        parg.cmdResult += 'OK : PDFLOGO * Not * Required ' + result;
       }
       return cb( null );
 
@@ -132,8 +171,8 @@ function copyPdf( parg, cb ) {
   var cmd;
 
   // Copy PDF from JDE Output Queue to working folder (on Aix) - append _ORIGINAL to PDF name
-  parg.cmd = 'copyPdf : ';
-  parg.cmdResult = 'copyPdf : ';
+  parg.cmd = 'COPY PDF | ';
+  parg.cmdResult = ' ';
 
   if ( parg.applyLogo != 'Y' ) { 
 
@@ -173,8 +212,8 @@ function applyLogo( parg, cb ) {
 
 
   // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
-  parg.cmd = 'applyLogo : ';
-  parg.cmdResult = 'applyLogo : ';
+  parg.cmd = 'APPLY LOGO | ';
+  parg.cmdResult = ' ';
 
   if ( parg.applyLogo != 'Y' ) { 
 
@@ -215,8 +254,8 @@ function replacePdf( parg, cb ) {
     cmd;
 
   // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
-  parg.cmd = 'replacePdf : ';
-  parg.cmdResult = 'replacePdf : ';
+  parg.cmd = 'REPLACE PDF | ';
+  parg.cmdResult = ' ';
 
   if ( parg.applyLogo != 'Y' ) { 
 
@@ -254,8 +293,8 @@ function replacePdf( parg, cb ) {
 //
 function updatePdfEntryStatus( parg, cb ) {
 
-  parg.cmd = 'updateStatus : ';
-  parg.cmdResult = 'updateStatus : ';
+  parg.cmd = 'UPDATE STATUS | ';
+  parg.cmdResult = ' ';
 
   updatepdfstatus.updatePdfStatus( parg, function( err, result ) {
 
@@ -282,8 +321,8 @@ function updatePdfEntryStatus( parg, cb ) {
 //
 function releaseLockReturn( parg, cbDone ) {
 
-  parg.cmd = 'releaseLock : ';
-  parg.cmdResult = 'releaseLock : ';
+  parg.cmd = 'RELEASE LOCK | ';
+  parg.cmdResult = ' ';
 
   releaselockpdf.releaseLockPdf( parg, function( err, result ) {
 

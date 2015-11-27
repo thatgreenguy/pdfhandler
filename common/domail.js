@@ -1,18 +1,3 @@
-// Module		: domail.js
-// Description		: Handler that sends JDE PDF files as report attachments.
-// Author		: Paul Green
-// Dated		: 2015-10-19
-//
-// Called when a Queued PDF entry is waiting at Mail Status '200' 
-// Gain exclusive use of the PDF via lock, fetch mail configuration for this particular JDE report/version
-// copy original PDF to work directory and give it a proper .pdf extension so handled correctly by 
-// mail clients, rename to .pdf, apply Dlink Logo to each page
-// replace original JDE PDF in PrintQueue with Logo enhanced copy, move the Queued PDF entry to next status
-// then release lock. 
-// Audit log entries are written for each step to JDE Audit log table (1) to provide feedback/visibility  of this 
-// application processing to the JDE team and (2) to allow use of audit log for recovery processing if required
-
-
 var oracledb = require( 'oracledb' ),
   async = require( 'async' ),
   exec = require( 'child_process' ).exec,
@@ -20,6 +5,7 @@ var oracledb = require( 'oracledb' ),
   lockpdf = require( './lockpdf.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
   updatepdfstatus = require( './updatepdfstatus.js' ),
+  auditlog = require( './auditlog.js' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
   mail = require( './mail.js' ),
@@ -27,24 +13,6 @@ var oracledb = require( 'oracledb' ),
   dirLocalJdePdf = process.env.DIR_SHAREDDATA,
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB;
-
-
-// Functions - 
-//
-// module.exports.doMail = function( dbp, dbc, hostname, row, jdedate, jdetime, statusTo, cbWhenDone )
-// function invalidConnection( err, pargs )
-// function validConnection( cn, p )
-// function placeLock( p, cb  )
-// function getMailConfig( p, cb  )
-// function copyPdf( p, cb  )
-// function auditLogCopyPdf( p, cb  )
-// function mailReport( p, cb )
-// function auditLogMailReport( p, cb  ) 
-// function removePdfCopy( p, cb  )
-// function auditLogRemovePdfCopy( p, cb  )
-// function updateProcessQueueStatus( p, cb  )
-// function auditLogQueuedPdfStatusChanged( p, cb  )
-// function finalStep( p  )
 
 
 module.exports.doMail = function( pargs, cbDone ) {
