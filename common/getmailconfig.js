@@ -74,8 +74,8 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
       log.d( parg.newPdf + ' : rows     : ' + rows );
       log.d( parg.newPdf + ' : rowCount : ' + rowCount );
       
-      parg.mailOptions = {};
-      parg.versionOptions = {};
+      parg.mailOptions = [];
+      parg.versionOptions = [];
       
       if ( rowCount > 0 ) {
  
@@ -91,19 +91,23 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
           
           // Sort version and report level options - initially mailoptions holds just report level options.
           if ( ver == parg.pdfVersionName ) {
-            parg.versionOptions.opt = val;
+            parg.versionOptions[ opt ] = val;
           } else {
             parg.mailOptions.opt = val;
           }
         }
 
-        // 
         log.d( parg.newPdf + ' : Report Config  : ' + JSON.stringify( parg.mailOptions) );
         log.d( parg.newPdf + ' : Version Config : ' + JSON.stringify( parg.versionOptions );
 
         // Iterate over Version level options and check to see if each exists in mailOptions or not
         // If found replace Report Level option with Version override
         // If not found then add Version level option
+
+        for ( var i = 0; i < rowCount; i++ ) {
+
+
+
     
         // Extract array of Key values from Version Options 
         wka = Object.keys( versionOptions )
