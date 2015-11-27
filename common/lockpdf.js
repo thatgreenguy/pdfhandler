@@ -54,7 +54,6 @@ module.exports.lockPdf = function( pargs, cbWhenDone ) {
         return cbWhenDone( err );
       }  
 
-      log.v( pargs.newPdf + ' : Lock placed : ' );
       dbc.release( function( err ) {
         if ( err ) {
           log.e( newPdf + ' : Unable to release Jde Db connection : ' + err );

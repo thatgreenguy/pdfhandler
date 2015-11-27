@@ -48,7 +48,6 @@ module.exports.updatePdfStatus = function( pargs, cbWhenDone ) {
         return cbWhenDone( err );
       }  
 
-      log.v( pargs.newPdf + ' : PDF Process Queue Status Updated : ' );
       dbc.release( function( err ) {
         if ( err ) {
           log.e( newPdf + ' : Unable to release Jde Db connection : ' + err );
