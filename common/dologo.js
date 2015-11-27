@@ -105,6 +105,10 @@ function auditLogOptional( parg, cb ) {
 
       }
     });
+  } else {
+
+    return cb( null );
+
   }
 
 }
