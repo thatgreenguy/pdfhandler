@@ -95,7 +95,7 @@ function checkGetNewPdf( parg, next ) {
         parg.newPdfStatus = row[ 1 ];
 
         // Same codebase used for Logo and Mail processing (depends on env variable parms)
-        if ( parg.newPdfStatus = '100' ) {
+        if ( parg.newPdfStatus == '100' ) {
 
           log.d( parg.newPdf + ' perform Logo processing' ); 
           dologo.doLogo( parg, function( err, result ) {
@@ -116,7 +116,7 @@ function checkGetNewPdf( parg, next ) {
 
         } else {
 
-          if ( parg.newPdfStatus = '200' ) {
+          if ( parg.newPdfStatus == '200' ) {
 
             log.d( parg.newPdf = ' perform Mail processing ' ); 
             domail.doMail( parg, function( err, result ) { 

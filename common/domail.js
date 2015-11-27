@@ -177,13 +177,13 @@ function checkConfiguration( parg, cb ) {
   parg.cmdResult = ' ';
   parg.mailEnabled = 'N';
 
-  mail.getMailConfig( parg, function( err, result ) {
+  mail.prepMail( parg, function( err, result ) {
 
     if ( err ) {
 
       log.e( parg.newPdf + ' : Error trying to get PDFMAIL config/setup : ' + err );    
-      parg.mailSent = 'N'
-      parg.mailReason = 'Failed to get any mail configuration'
+      parg.mailSent = 'N';
+      parg.mailReason = 'Failed to get any mail configuration';
       parg.cmdResult += 'FAILED : ' + result;
       return cb( err );
 
@@ -202,7 +202,7 @@ function checkConfiguration( parg, cb ) {
             parg.mailEnabled = option[ 1 ]
           }        
           if ( option[ 0 ] === 'EMAIL_CSV' ) {
-            parg.mailCsv = option[ 1 ]
+            parg.mailCsv = option[ 1 ];
           }        
         }
       }
@@ -213,13 +213,13 @@ function checkConfiguration( parg, cb ) {
         // If disabled dont send email but continue without error so status is updated to complete 
         parg.mailSent = 'N'
         parg.mailReason = 'Mail Configuration options exists but Email report is disabled'
-        return cb( null )
+        return cb( null );
 
       } else {
 
         // Save mail options and continue to next step
-        parg.mailOptions = result
-        return cb( null )
+        parg.mailOptions = result;
+        return cb( null );
 
       }
     }
