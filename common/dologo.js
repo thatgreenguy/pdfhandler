@@ -16,9 +16,11 @@ var oracledb = require( 'oracledb' ),
   exec = require( 'child_process' ).exec,
   log = require( './logger.js' ),
   mounts = require( './mounts.js' ),
-  lock = require( './lock.js' ),
   audit = require( './audit.js' ),
   getlogoconfig = require( './getlogoconfig.js' ),
+  lockpdf = require( './lockpdf.js' ),
+  releaselockpdf = require( './releaselockpdf.js' ),
+  updatepdfstatus = require( './updatepdfstatus.js' ),
   logoinfo = require( './logoinfo.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
   dirLocalJdePdf = process.env.DIR_SHAREDDATA,
@@ -73,8 +75,8 @@ module.exports.doLogo = function( parg, cbDone ) {
 
       // Check shows Mounts in place so handle Logo Processing
       async.series([
-        function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { lockPdf( parg, cb ) },
+        function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
         function( cb ) { applyLogo( parg, cb ) },
         function( cb ) { replacePdf( parg, cb ) },
@@ -103,6 +105,34 @@ module.exports.doLogo = function( parg, cbDone ) {
 }
 
 
+// Lock PDF for duration of any Logo processing - need exclusive access
+//
+function lockPdf( parg, cb ) {
+
+  log.d( parg.newPdf + ' : Lock PDF : Exclusivity required for Logo processing ' );
+  parg.cmd = 'lockPdf : ';
+  parg.cmdResult = 'lockPdf : ';
+
+  lockpdf.lockPdf( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.d( parg.newPdf + ' : Unable to place Lock on this PDF : Already in use? ' );  
+      parg.cmdResult += 'FAILED : ' + result;
+      return cb( err );
+
+    } else {
+
+      log.d( parg.newPdf + ' : Lock Placed : ' + result );  
+      parg.cmdResult += 'OK : ' + result;
+      return cb( null );
+
+    }
+  });
+
+}
+
+
 function checkConfiguration( parg, cb ) {
 
   log.d( parg.newPdf + ' : Check Configuration : Is PDF set up for Logo processing? ' );
@@ -125,17 +155,6 @@ function checkConfiguration( parg, cb ) {
 
     }
   });  
-
-}
-
-
-function lockPdf( parg, cb ) {
-
-  // Lock PDF for duration of any Logo processing - need exclusive access
-  log.d( parg.newPdf + ' : Lock PDF : Exclusivity required for Logo processing ' );
-
-
-  return cb( null );
 
 }
 
@@ -180,6 +199,8 @@ function applyLogo( parg, cb ) {
 
   // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
   log.d( parg.newPdf + ' : Apply Logo and create new PDF file with same name as original but with Logo images applied' );
+  parg.cmd = 'applyLogo : ';
+  parg.cmdResult = 'applyLogo : ';
 
 
 
@@ -192,6 +213,8 @@ function replacePdf( parg, cb ) {
 
   // Apply Logo image using copy PDF in working folder and creating new PDF with logos in working folder
   log.d( parg.newPdf + ' : Replace original Pdf (in JDE PrintQueue) with new Logo Pdf in working directory' );
+  parg.cmd = 'replacePdf : ';
+  parg.cmdResult = 'replacePdf : ';
 
 
   return cb( null );
@@ -199,12 +222,31 @@ function replacePdf( parg, cb ) {
 }
 
 
+// Update PDF status in PDF Process Queue from 100 to 200
+//
 function updatePdfEntryStatus( parg, cb ) {
 
   // Logo processing completed so shuffle PDF Entry to next Status
   log.d( parg.newPdf + ' : Update PDF Entry Process Queue Status : Logo Processing Done ' );
+  parg.cmd = 'updateStatus : ';
+  parg.cmdResult = 'updateStatus : ';
 
-  return cb( null );
+  updatepdfstatus.updatePdfStatus( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.d( parg.newPdf + ' : Unable to update Process Queue (F559811) Status? ' );  
+      parg.cmdResult += 'FAILED : ' + result;
+      return cb( err );
+
+    } else {
+
+      log.d( parg.newPdf + ' : Status Updated : ' + result );  
+      parg.cmdResult += 'OK : ' + result;
+      return cb( null );
+
+    }
+  });
 
 }
 
@@ -215,8 +257,25 @@ function releaseLockReturn( parg, cbDone ) {
   // logo processing errored then release lock anyway - allows attempt to recover on subsequent runs
 
   log.d( parg.newPdf + ' : Release Lock on PDF entry ' );
+  parg.cmd = 'releaseLock : ';
+  parg.cmdResult = 'releaseLock : ';
 
-  return cbDone( null );
+  releaselockpdf.releaseLockPdf( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.d( parg.newPdf + ' : Unable to release Lock on this PDF? ' );  
+      parg.cmdResult += 'FAILED : ' + result;
+      return cbDone( err );
+
+    } else {
+
+      log.d( parg.newPdf + ' : Lock Released : ' + result );  
+      parg.cmdResult += 'OK : ' + result;
+      return cbDone( null );
+
+    }
+  });
 
 }
 
@@ -224,7 +283,7 @@ function releaseLockReturn( parg, cbDone ) {
 
 
 
-
+// OLD CODE FOR REFERENCE ONLY .......................
 module.exports.OLDdoLogo = function( dbp, dbc, hostname, row, jdedate, jdetime, statusFrom, statusTo, cbWhenDone ) {
 
   var pargs;
