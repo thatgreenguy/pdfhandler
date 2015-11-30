@@ -5,9 +5,9 @@ var oracledb = require( 'oracledb' ),
   mounts = require( './mounts.js' ),
   audit = require( './audit.js' ),
   auditlog = require( './auditlog.js' ),
-  mail = require( './mail.js' ),
   lockpdf = require( './lockpdf.js' ),
   getmailconfig = require( './getmailconfig.js' ),
+  sendemail = require( './sendemail.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
   updatepdfstatus = require( './updatepdfstatus.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
@@ -55,8 +55,8 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { auditLogMailOptions( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
-//        function( cb ) { mailReport( parg, cb )}, 
-//        function( cb ) { auditLogOptional( parg, cb ) },
+        function( cb ) { mailReport( parg, cb )}, 
+        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { removePdfCopy( parg, cb )}, 
         function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { updatePdfEntryStatus( parg, cb ) },
@@ -330,20 +330,20 @@ function mailReport( parg, cb ) {
 
   } else {
 
-    mail.doMail( parg.newPdf, parg.mailOptions, function( err, result ) {
+    sendemail.sendEmail( parg, function( err, result ) {
 
       log.d( parg.newPdf + ' : ' + err );  
       log.d( parg.newPdf + ' : ' + result );  
 
       if ( err ) {
 
-        parg.cmdResult += 'FAILED : Unable to Email Report : ' + err + result;
+        parg.cmdResult += result;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( err )
 
       } else {
 
-        parg.cmdResult += 'OK : ' + result;
+        parg.cmdResult += result;
         log.v( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( null )
 

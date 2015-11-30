@@ -14,13 +14,14 @@ smtpTransport = nodemailer.createTransport( "SMTP", {
 });
 
 
-module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
 
-  // mailOptions holds mail configuration for this report from the JDE database
-  // this could be as simple as a TO address as sensible defaults should be provided
-  // by this program for any missing config.
-  // In order to send an email the minimum required is an EMAIL = 'Y' and a TO address
-  // following default values will be supplied for rest
+// mailOptions holds mail configuration for this report from the JDE database
+// this could be as simple as a TO address as sensible defaults should be provided
+// by this program for any missing config.
+// In order to send an email the minimum required is an EMAIL = 'Y' and a TO address
+// following default values will be supplied for rest
+//
+module.exports.sendEmail = function( pargs, postMailCb ) {
 
   var email,
     from = 'noreply@dlink.com',
@@ -33,7 +34,12 @@ module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
     wrk = {},
     entry,
     mo = {},
-    csv = 'N';
+    csv = 'N',
+    textCount = 0;
+
+  jdeJob = pargs.newPdf;
+  mailOptions = pargs.mailOptionsArray;
+
 
   // Provide default values for Subject and Text (can be overridden by PDFMAIL configuration options)
   subject = 'Dlink JDE Report : ' + jdeJob;
@@ -68,12 +74,27 @@ module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
         bcc = entry[ 1 ];
       }
     }
+
     if ( entry[ 0 ] === 'EMAIL_SUBJECT' ) {
       subject = entry[ 1 ];
     }
+
     if ( entry[ 0 ] === 'EMAIL_TEXT' ) {
-      text = entry[ 1 ];
+
+      // Wrap basic HTML around text content from JDE Config file 
+ 
+      if ( textCount == 0 ) {
+
+        text = '<P>' + entry[ 1 ] + '<P>';
+
+      } else {
+
+        text += '<P>' + entry[ 1 ] + '<P>';
+
+      }
+      textCount += 1;        
     }
+
     if ( entry[ 0 ] === 'EMAIL_FROM' ) {
       from = entry[ 1 ];
     }
@@ -116,7 +137,9 @@ module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
   mo['from'] = from;
   mo['to'] = to;
   mo['subject'] = subject;
-  mo['text'] = text;
+
+  //  mo['text'] = text;
+  mo['html'] = text;
   if ( cc ) {
     mo['cc'] = cc;
   }
@@ -125,8 +148,10 @@ module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
   }
   mo['attachments'] = attachments;
 
-  log.d( 'Mail Option check before send request...' );
-  log.d( JSON.stringify( mo ) );
+  log.v( JSON.stringify( mo ) );
+
+
+
  
 
   if ( email === 'Y' ) {
@@ -134,14 +159,14 @@ module.exports.sendEmail = function( jdeJob, mailOptions, postMailCb ) {
     function(err, response) {
   
       if ( err ) {
-        log.e( 'Error trying to send email - failed' );
-        log.e( err );
-        return postMailCb( err );
+        response = 'EMAIL Send FAILED : ' + err
+        log.e( response );
+        return postMailCb( err, response );
 
       } else {
-
-        log.i( "Email sent: " + response.message);
-        postMailCb( null, 'SENT');
+        response = 'EMAIL Sent OK : ' + JSON.stringify( response );
+        log.i( response );
+        postMailCb( null, response);
       }
     });
   } 

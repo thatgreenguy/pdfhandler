@@ -55,7 +55,7 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
     // If 1 or more entries then need to examine them in detail as Version level entries can override Report level ones.
   
     sql = "SELECT crvernm, crblkk, crtaskmisc  FROM " + jdeEnvDb.trim() + ".F559890 WHERE crcfgsid = 'PDFMAIL' AND crpgm = '";
-    sql += parg.pdfReportName + "' AND ( crvernm = '" + parg.pdfVersionName + "' OR crvernm = '*ALL' ) ORDER BY CRBLKK, CRVERNM" ;
+    sql += parg.pdfReportName + "' AND ( crvernm = '" + parg.pdfVersionName + "' OR crvernm = '*ALL' ) ORDER BY CRBLKK, CRVERNM, CRSEQ" ;
     log.d( sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
