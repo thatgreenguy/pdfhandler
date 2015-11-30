@@ -3,12 +3,13 @@ var async = require( 'async' ),
   moment = require( 'moment' ),
   log = require( './logger.js' ),
   audit = require( './audit.js' ),
+  determinemailingoptions = require( './determinemailingoptions.js' ),
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB,
   credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
   
 
-module.exports.getMailConfig = function(  parg, cbWhenDone ) {
+module.exports.getMailOptions = function(  parg, cbWhenDone ) {
 
   var p = {},
     sql,
@@ -17,25 +18,29 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
     row,
     wka,
     rowCount,
-    configVersion = null,
-    configAll = null,
+    configVersion = [],
+    configReport = [],
     ver,
     opt,
     val,
     wka;
 
-  parg.sendEmail = 'N';
-  parg.mailConfig = '';
 
-  log.d( 'Get Connection to query for any Mail configuration setup ' );
-
+  // Split passed PDF name extracting Report and Version name elements
+  // Note: Report names and version names are expected to be less than 17 chars combined due to truncation
+  // bug in JDE with long report/version names : in short if you looking at this wondering why your report / version overrides aren't getting picked up
+  // makes sure the PDF has the full version name - if not change your version name to reduce length! 
+  // By default if DB error or no config options setup returns mailOptions with EMAIL=N otherwsie returns mailOptions as setup in F559890
+  
   wka = parg.newPdf.split("_");
-
   parg.pdfReportName = wka[0];
   parg.pdfVersionName = wka[1];
+  parg.mailOptions = { 'EMAIL': 'N' };
 
   log.d( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
   log.d( parg.newPdf + ' : Version Name : ' + parg.pdfVersionName );
+
+  log.d( 'Get Connection to query for any Mail configuration setup ' );
 
   oracledb.getConnection( credentials, function( err, dbc ) {
 
@@ -73,46 +78,40 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
 
       log.d( parg.newPdf + ' : rows     : ' + rows );
       log.d( parg.newPdf + ' : rowCount : ' + rowCount );
-      
-      parg.mailOptions = [];
-      parg.versionOptions = [];
-      
+            
       if ( rowCount > 0 ) {
  
         // We have some configuration options so could be sending email here but depends on the 'EMAIL' option being Y or N
-        // Merge all options for this Report/Version then cehck the 'EMAIL' option   
+        // First sort config options into Report or Version level
         
         for ( var i = 0; i < rowCount; i++ ) {
 
           row = result.rows[ i ];
-          ver = row[ 0 ];
-          opt = row[ 1 ];
+          ver = row[ 0 ].trim();
+          opt = row[ 1 ].trim();
           val = row[ 2 ];
+          wka = [ opt, val ];
           
-          // Sort version and report level options - initially mailoptions holds just report level options.
+          // Is read mail config option Report or Version level?
           if ( ver == parg.pdfVersionName ) {
-            parg.versionOptions[ opt ] = val;
+            configVersion.push( wka );
           } else {
-            parg.mailOptions.opt = val;
+            configReport.push( wka );
           }
         }
 
-        log.d( parg.newPdf + ' : Report Config  : ' + JSON.stringify( parg.mailOptions) );
-        log.d( parg.newPdf + ' : Version Config : ' + JSON.stringify( parg.versionOptions );
+        // Report and Version options are now segregated
+        // Now need to merge both sets of options respecting version options 
+        // to determine the actual mailing options that should apply to this Report/Version
 
-        // Iterate over Version level options and check to see if each exists in mailOptions or not
-        // If found replace Report Level option with Version override
-        // If not found then add Version level option
+        parg.mailOptions = determinemailingoptions.determineMailingOptions( configReport, configVersion );          
 
-        for ( var i = 0; i < rowCount; i++ ) {
+        // We have applicable Mailing Options for this Report Version so check the 'EMAIL' option and set
+        // whether we are sending email for this report/version or not
 
-
+        log.v( parg.newPdf + ' Mailing Options: ' + JSON.stringify( parg.mailOptions ) );
 
     
-        // Extract array of Key values from Version Options 
-        wka = Object.keys( versionOptions )
-
-        // Iterate over Version Options check mailOptions if not there add otherwise replace value
          
 
 
@@ -120,6 +119,7 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
 
         // No PDFMAIL config at all for this Report/Version so definitely not sending email here - return to caller
         log.d( parg.newPdf + ' : No PDFMAIL config found ' );
+
 
       }
      
