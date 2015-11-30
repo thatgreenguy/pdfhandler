@@ -323,8 +323,6 @@ function mailReport( parg, cb ) {
   parg.cmd = 'EMAIL REPORT | ';
   parg.cmdResult = ' ';
 
-  log.v( JSON.stringify( parg ) );
-
   if ( parg.mailEnabled !== 'Y' ) {
 
     log.v( parg.newPdf + parg.cmd + ' : SKIP : Report Mailing disabled' );
