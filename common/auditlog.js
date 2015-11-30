@@ -82,10 +82,7 @@ module.exports.auditLogMailOptions = function( pargs, cbWhenDone ) {
   async.forEachOfSeries( pargs.mailOptionsArray, 
     function( option, key, callback ) {
 
-      log.w( 'LOG option::: ' + option );
       pargs.comments = '' + option;      
-//      pargs.comments = 'MAIL OPTION : ' + option;      
-
       module.exports.auditLog( pargs, function( err, res ) {
 
         if ( err ) {

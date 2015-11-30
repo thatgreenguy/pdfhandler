@@ -65,8 +65,6 @@ module.exports.determineMailingOptions = function( rptConfig, verConfig ) {
 
   logValues( 'After:', rptConfig, verConfig, mailConfig );
   
-  log.d( 'Array to Obj: ' + mailConfig );
-
   // Now final Mailing Options determined return them as an object
   return { 'mailOptionsArray': mailConfig, 'mailOptionsObject': finalMailingOptions( mailConfig ) };
 
@@ -80,11 +78,7 @@ function finalMailingOptions( mailConfig ) {
 
   var finalMailOptions = {};
 
-  log.d( 'foEach working with: ' + mailConfig );
-
   mailConfig.forEach( function( row ) {
-
-    log.d( 'foEach: ' + row );
 
     finalMailOptions[ row[ 0 ] ] = row[ 1 ];
 

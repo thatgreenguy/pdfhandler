@@ -40,9 +40,6 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
 
   log.d( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
   log.d( parg.newPdf + ' : Version Name : ' + parg.pdfVersionName );
-  log.w( "PARG :> " );
-  log.w( "PARG :> " + JSON.stringify( parg ) );
-  log.w( "PARG :> " );
 
   log.d( 'Get Connection to query for any Mail configuration setup ' );
 
@@ -80,9 +77,6 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
       rows = result.rows;
       rowCount = result.rows.length;
 
-      log.d( parg.newPdf + ' : rows     : ' + rows );
-      log.d( parg.newPdf + ' : rowCount : ' + rowCount );
-            
       if ( rowCount > 0 ) {
  
         // We have some configuration options so could be sending email here but depends on the 'EMAIL' option being Y or N

@@ -53,12 +53,12 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { auditLogMailOptions( parg, cb ) },
-//        function( cb ) { copyPdf( parg, cb ) },
-//        function( cb ) { auditLogOptional( parg, cb ) },
+        function( cb ) { copyPdf( parg, cb ) },
+        function( cb ) { auditLogOptional( parg, cb ) },
 //        function( cb ) { mailReport( parg, cb )}, 
 //        function( cb ) { auditLogOptional( parg, cb ) },
-//        function( cb ) { removePdfCopy( parg, cb )}, 
-//        function( cb ) { auditLogOptional( parg, cb ) },
+        function( cb ) { removePdfCopy( parg, cb )}, 
+        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 
@@ -231,7 +231,7 @@ function checkConfiguration( parg, cb ) {
     } else {
 
       log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
-      log.i( parg.newPdf + ' Mail Config found : ' + JSON.stringify( parg.mailOptions ) );     
+      log.v( parg.newPdf + ' Mail Config found : ' + JSON.stringify( parg.mailOptions ) );     
 
 
       if ( parg.mailOptions.EMAIL == 'Y' && parg.mailOptions.hasOwnProperty( 'EMAIL_TO' ) ) {
@@ -300,13 +300,13 @@ function copyPdf( parg, cb ) {
 
       if ( err ) {
 
-        parg.cmdResult += 'FAILED : Unable to Copy Report : ' + stdout + stderr;
+        parg.cmdResult = cmd + ' FAILED : Unable to Copy Report : ' + stdout + stderr;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( err );
 
       } else {
  
-        parg.cmdResult += 'OK : Copy Report : ' + stdout + ' ' + stderr;
+        parg.cmdResult = cmd + ' OK : Report Copied : ' + stdout + stderr;
         log.v( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( null );
 
@@ -391,13 +391,13 @@ function removePdfCopy( parg, cb  ) {
 
       if ( err ) {
 
-        parg.cmdResult += 'FAILED : Unable to Remove Report Copy ' + stdout + stderr;
+        parg.cmdResult = cmd + ' FAILED : Copy Not Removed : ' + stdout + stderr;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( err )
 
       } else {
 
-        parg.cmdResult += 'OK : Removed Report Copy : ' + stdout + stderr;
+        parg.cmdResult = cmd + ' OK : Copy Removed : ' + stdout + stderr;
         log.v( parg.newPdf + parg.cmd + parg.cmdResult );
         return cb( null );
 
