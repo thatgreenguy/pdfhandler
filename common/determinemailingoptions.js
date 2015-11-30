@@ -1,7 +1,7 @@
 var log = require( './logger.js' ),
   verConfig = [],
   rptConfig =[],
-  mailOptions =[],
+  mailConfig =[],
   tmpOpt,  
   verrow,
   rptrow,
@@ -21,7 +21,10 @@ var log = require( './logger.js' ),
 //
 module.exports.determineMailingOptions = function( rptConfig, verConfig ) {
 
-  logValues( 'Before:', rptConfig, verConfig, mailOptions );
+  mailConfig = [];
+
+
+  logValues( 'Before:', rptConfig, verConfig, mailConfig );
 
   for ( var prop in rptConfig ) {
 
@@ -47,25 +50,25 @@ module.exports.determineMailingOptions = function( rptConfig, verConfig ) {
 
         log.d( 'NOT FOUND : Report Option should be used as no Version Overrides Option ' );
         log.d( '          : Report Option : ' + rptrow );
-        mailOptions.push( rptrow );
+        mailConfig.push( rptrow );
 
       };
     }
   }
 
-  logValues( 'Intermediate:', rptConfig, verConfig, mailOptions );
+  logValues( 'Intermediate:', rptConfig, verConfig, mailConfig );
 
-  // At this point mailOptions only holds email options from Report Config level where no version overrides exist
+  // At this point mailConfig only holds email options from Report Config level where no version overrides exist
   // Now need to add all version overrides 
-  tmpOpt = mailOptions.concat( verConfig );
-  mailOptions = tmpOpt;
+  tmpOpt = mailConfig.concat( verConfig );
+  mailConfig = tmpOpt;
 
-  logValues( 'After:', rptConfig, verConfig, mailOptions );
+  logValues( 'After:', rptConfig, verConfig, mailConfig );
   
-  log.d( 'Array to Obj: ' + mailOptions );
+  log.d( 'Array to Obj: ' + mailConfig );
 
   // Now final Mailing Options determined return them as an object
-  return finalMailingOptions( mailOptions );
+  return { 'mailOptionsArray': mailConfig, 'mailOptionsObject': finalMailingOptions( mailConfig ) };
 
 }
 
@@ -73,13 +76,13 @@ module.exports.determineMailingOptions = function( rptConfig, verConfig ) {
 // Accepts array holding final merged results of Report and Version options
 // returns same data in object format
 //
-function finalMailingOptions( mailOptions ) {
+function finalMailingOptions( mailConfig ) {
 
   var finalMailOptions = {};
 
-  log.d( 'foEach working with: ' + mailOptions );
+  log.d( 'foEach working with: ' + mailConfig );
 
-  mailOptions.forEach( function( row ) {
+  mailConfig.forEach( function( row ) {
 
     log.d( 'foEach: ' + row );
 

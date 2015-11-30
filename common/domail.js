@@ -7,7 +7,7 @@ var oracledb = require( 'oracledb' ),
   auditlog = require( './auditlog.js' ),
   mail = require( './mail.js' ),
   lockpdf = require( './lockpdf.js' ),
-  determineMailingOptions = require( './determineMailingOptions.js' ),
+  getmailconfig = require( './getmailconfig.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
   updatepdfstatus = require( './updatepdfstatus.js' ),
   dirRemoteJdePdf = process.env.DIR_JDEPDF,
@@ -17,6 +17,7 @@ var oracledb = require( 'oracledb' ),
 
 
 module.exports.doMail = function( parg, cbDone ) {
+
 
   // Check Remote Mounts in place for access to JDE PDF files in JDE Output Queue
   mounts.checkRemoteMounts( function( err, result ) {
@@ -42,6 +43,7 @@ module.exports.doMail = function( parg, cbDone ) {
 
       parg.cmd = 'BEGIN MAIL Processing';
       parg.cmdResult = ' ';
+      parg.newPdf = parg.newPdfRow[ 0 ];
 
       // Check shows Mounts in place so handle Mail Processing
       async.series([
@@ -50,12 +52,13 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
-        function( cb ) { copyPdf( parg, cb ) },
-        function( cb ) { auditLog( parg, cb ) },
-        function( cb ) { mailReport( parg, cb )}, 
-        function( cb ) { auditLog( parg, cb ) },
-        function( cb ) { removePdfCopy( parg, cb )}, 
-        function( cb ) { auditLogOptional( parg, cb ) },
+        function( cb ) { auditLogMailOptions( parg, cb ) },
+//        function( cb ) { copyPdf( parg, cb ) },
+//        function( cb ) { auditLogOptional( parg, cb ) },
+//        function( cb ) { mailReport( parg, cb )}, 
+//        function( cb ) { auditLogOptional( parg, cb ) },
+//        function( cb ) { removePdfCopy( parg, cb )}, 
+//        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 
@@ -83,9 +86,32 @@ module.exports.doMail = function( parg, cbDone ) {
 }
 
 
+function auditLog( parg, cb ) { 
+
+  parg.comments = parg.cmd + ' ' + parg.cmdResult; 
+
+  auditlog.auditLog( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.e( parg.newPdf + ' : Failed to write Audit Log Entry to JDE : DB error? ' + err );  
+      parg.cmdResult += 'FAILED : ' + result;
+      return cb( err );
+
+    } else {
+
+      log.d( parg.newPdf + ' : Audit Log Entry : ' + result );  
+      parg.cmdResult += 'OK : ' + result;
+      return cb( null );
+
+    }
+  });
+}
+
+
 function auditLogOptional( parg, cb ) { 
 
-  if ( parg.applyLogo == 'Y' ) { 
+  if ( parg.mailEnabled == 'Y' ) { 
 
     parg.comments = parg.cmd + ' ' + parg.cmdResult; 
 
@@ -114,28 +140,35 @@ function auditLogOptional( parg, cb ) {
 }
 
 
-function auditLog( parg, cb ) { 
+function auditLogMailOptions( parg, cb ) { 
 
-  parg.comments = parg.cmd + ' ' + parg.cmdResult; 
+  if ( parg.mailEnabled == 'Y' ) { 
 
-  auditlog.auditLog( parg, function( err, result ) {
 
-    if ( err ) {
+    auditlog.auditLogMailOptions( parg, function( err, result ) {
 
-      log.e( parg.newPdf + ' : Failed to write Audit Log Entry to JDE : DB error? ' + err );  
-      parg.cmdResult += 'FAILED : ' + result;
-      return cb( err );
+      if ( err ) {
 
-    } else {
+        log.e( parg.newPdf + ' : Failed to write Audit Log Mail Options Entry to JDE : DB error? ' + err );  
+        parg.cmdResult += 'FAILED : ' + result;
+        return cb( err );
 
-      log.d( parg.newPdf + ' : Audit Log Entry : ' + result );  
-      parg.cmdResult += 'OK : ' + result;
-      return cb( null );
+      } else {
 
-    }
-  });
+        log.d( parg.newPdf + ' : Audit Log Mail Options Entry : ' + result );  
+        parg.cmdResult += 'OK : ' + result;
+        return cb( null );
 
+      }
+    }); 
+
+  } else {
+
+    return cb( null );
+
+  }
 }
+
 
 
 // Lock PDF for duration of any Mail processing - need exclusive access
@@ -176,51 +209,50 @@ function checkConfiguration( parg, cb ) {
   log.v( parg.newPdf + ' : Check Configuration : Is PDF set up for Mail processing? ' );
   parg.cmd = 'CHECK CONFIG | ';
   parg.cmdResult = ' ';
+
+  // Ensure we start with Mail Option collections empty
+  parg.mailOptions = null;
+  parg.mailOptionsArray = null;
+
+
+  // Assume Email not required initially
   parg.mailEnabled = 'N';
 
-  mail.prepMail( parg, function( err, result ) {
+  getmailconfig.getMailConfig( parg, function( err, result ) {
 
     if ( err ) {
 
       log.e( parg.newPdf + ' : Error trying to get PDFMAIL config/setup : ' + err );    
       parg.mailSent = 'N';
       parg.mailReason = 'Failed to get any mail configuration';
-      parg.cmdResult += 'FAILED : ' + result;
-      return cb( err );
+      parg.cmdResult += 'Email No : Failed to find any mail config/setup : ' + result;
+      return cb( err, parg.cmdResult );
 
     } else {
 
-      log.v( parg.cmd + ' : OK ' + result );
-      log.i( parg.newPdf + ' : Mail Configuration found ' );
-      for ( var key in result ) {
-        if ( result.hasOwnProperty( key )) {
+      log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
+      log.i( parg.newPdf + ' Mail Config found : ' + JSON.stringify( parg.mailOptions ) );     
 
-          log.i( parg.pdf + ' ' + key + ' : ' + result[ key ]);
 
-          option = result[ key ]
+      if ( parg.mailOptions.EMAIL == 'Y' && parg.mailOptions.hasOwnProperty( 'EMAIL_TO' ) ) {
 
-          if ( option[ 0 ] === 'EMAIL' ) {
-            parg.mailEnabled = option[ 1 ]
-          }        
-          if ( option[ 0 ] === 'EMAIL_CSV' ) {
-            parg.mailCsv = option[ 1 ];
-          }        
-        }
-      }
-     
-      if ( parg.mailEnabled !== 'Y' ) {
-
-        // Email configuration may exist for report but could be disabled EMAIL=N
-        // If disabled dont send email but continue without error so status is updated to complete 
-        parg.mailSent = 'N'
-        parg.mailReason = 'Mail Configuration options exists but Email report is disabled'
-        return cb( null );
+        // We have mail config options and EMAIL indicates mail should be sent
+        log.v( parg.newPdf + ' MailOptions indicate Email should be sent and an EMAIL_TO is available to send to! ');
+        parg.mailEnabled = 'Y';
+        parg.cmdResult = 'Email Yes : ';
+        return cb( null, parg.cmdResult );
 
       } else {
 
-        // Save mail options and continue to next step
-        parg.mailOptions = result;
-        return cb( null );
+        // Email configuration may exist for report but could be disabled EMAIL=N
+        // If disabled dont send email but continue without error so status is updated to complete 
+        log.v( parg.newPdf + ' MailOptions indicate Email should NOT be sent or the minimum EMAIL_TO requirement is not met! ');
+        parg.mailReason = 'Mail Configuration options exists but Email report is disabled or missing an EMAIL_TO'
+        parg.cmdResult = 'Email No : ';
+        if ( parg.mailOptions.EMAIL != 'Y' ) { parg.cmdResult += 'EMAIL DISABLED' };
+        if ( !parg.mailOptions.hasOwnProperty( 'EMAIL_TO' ) ) { parg.cmdResult += 'MISSING EMAIL_TO ADDRESS' };
+        parg.cmdResult += ' : Config : ' + JSON.stringify( parg.mailOptions );
+        return cb( null, parg.cmdResult );
 
       }
     }
@@ -232,6 +264,7 @@ function checkConfiguration( parg, cb ) {
 function copyPdf( parg, cb ) {
 
   var cmd;
+
 
   // Copy PDF from JDE Output Queue to working folder (on Aix) - append _ORIGINAL to PDF name
   parg.cmd = 'COPY PDF | ';

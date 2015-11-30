@@ -9,7 +9,7 @@ var async = require( 'async' ),
   credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
   
 
-module.exports.getMailOptions = function(  parg, cbWhenDone ) {
+module.exports.getMailConfig = function(  parg, cbWhenDone ) {
 
   var p = {},
     sql,
@@ -23,7 +23,8 @@ module.exports.getMailOptions = function(  parg, cbWhenDone ) {
     ver,
     opt,
     val,
-    wka;
+    wka,
+    tmpobj;
 
 
   // Split passed PDF name extracting Report and Version name elements
@@ -39,6 +40,9 @@ module.exports.getMailOptions = function(  parg, cbWhenDone ) {
 
   log.d( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
   log.d( parg.newPdf + ' : Version Name : ' + parg.pdfVersionName );
+  log.w( "PARG :> " );
+  log.w( "PARG :> " + JSON.stringify( parg ) );
+  log.w( "PARG :> " );
 
   log.d( 'Get Connection to query for any Mail configuration setup ' );
 
@@ -104,22 +108,20 @@ module.exports.getMailOptions = function(  parg, cbWhenDone ) {
         // Now need to merge both sets of options respecting version options 
         // to determine the actual mailing options that should apply to this Report/Version
 
-        parg.mailOptions = determinemailingoptions.determineMailingOptions( configReport, configVersion );          
+        tmpobj = null;
+        tmpobj = determinemailingoptions.determineMailingOptions( configReport, configVersion );          
+        parg.mailOptions = tmpobj.mailOptionsObject;
+        parg.mailOptionsArray = tmpobj.mailOptionsArray;
 
         // We have applicable Mailing Options for this Report Version so check the 'EMAIL' option and set
         // whether we are sending email for this report/version or not
 
         log.v( parg.newPdf + ' Mailing Options: ' + JSON.stringify( parg.mailOptions ) );
-
-    
-         
-
-
+      
       } else {
 
         // No PDFMAIL config at all for this Report/Version so definitely not sending email here - return to caller
         log.d( parg.newPdf + ' : No PDFMAIL config found ' );
-
 
       }
      
