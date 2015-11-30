@@ -302,7 +302,11 @@ function copyPdf( parg, cb ) {
 
         parg.cmdResult = cmd + ' FAILED : Unable to Copy Report : ' + stdout + stderr;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
-        return cb( err );
+
+        // Hit error at this stage just report it then switch off any further attempts to process report for Emailing 
+        parg.mailEnabled = 'N';
+
+        return cb( null );
 
       } else {
  
@@ -339,7 +343,11 @@ function mailReport( parg, cb ) {
 
         parg.cmdResult += result;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
-        return cb( err )
+
+        // Hit error at this stage just report it then switch off any further attempts to process report for Emailing 
+        parg.mailEnabled = 'N';
+
+        return cb( null )
 
       } else {
 
@@ -391,7 +399,11 @@ function removePdfCopy( parg, cb  ) {
 
         parg.cmdResult = cmd + ' FAILED : Copy Not Removed : ' + stdout + stderr;
         log.e( parg.newPdf + parg.cmd + parg.cmdResult );
-        return cb( err )
+
+        // If hit error attempting to delete working copy for email allow process to continue normally 
+        // as looks like email was sent - AIX server housekeeping can handle the odd file not removed by this process
+
+        return cb( null )
 
       } else {
 
