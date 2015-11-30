@@ -151,9 +151,6 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   log.v( JSON.stringify( mo ) );
 
 
-
- 
-
   if ( email === 'Y' ) {
     smtpTransport.sendMail( mo, 
     function(err, response) {

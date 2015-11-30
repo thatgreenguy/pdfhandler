@@ -32,6 +32,18 @@ module.exports.auditLog = function( pargs, cbWhenDone ) {
     
   } else {
 
+  
+  // Ensure comments field has not busted maximum field size 256 if so reduce it to prevent DB error
+  if ( pargs.comments.length > 255 ) {
+
+    log.w( pargs.newPdf + ' auditLog: Detected passed comments length is too great for INSERT to F559859 : Reducing to fit' );
+    log.w( pargs.newPdf + ' auditLog: was : ' + pargs.comments );
+    pargs.comments = pargs.comments.substring( 0, 256 );
+    log.w( pargs.newPdf + ' auditLog: now : ' + pargs.comments );
+
+  }
+
+
   genkey = jdedate + ' ' + jdetime;
   newPdf = pargs.newPdfRow[ 0 ];
   log.d( newPdf + ' : Get Connection for Insert' );

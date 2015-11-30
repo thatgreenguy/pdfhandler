@@ -251,7 +251,7 @@ function checkConfiguration( parg, cb ) {
         parg.cmdResult = 'Email No : ';
         if ( parg.mailOptions.EMAIL != 'Y' ) { parg.cmdResult += 'EMAIL DISABLED' };
         if ( !parg.mailOptions.hasOwnProperty( 'EMAIL_TO' ) ) { parg.cmdResult += 'MISSING EMAIL_TO ADDRESS' };
-        parg.cmdResult += ' : Config : ' + JSON.stringify( parg.mailOptions );
+        parg.cmdResult += ' : Config : ';
         return cb( null, parg.cmdResult );
 
       }
