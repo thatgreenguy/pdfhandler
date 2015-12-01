@@ -57,8 +57,8 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { mailReport( parg, cb )}, 
         function( cb ) { auditLogOptional( parg, cb ) },
-        function( cb ) { removePdfCopy( parg, cb )}, 
-        function( cb ) { auditLogOptional( parg, cb ) },
+//        function( cb ) { removePdfCopy( parg, cb )}, 
+//        function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 

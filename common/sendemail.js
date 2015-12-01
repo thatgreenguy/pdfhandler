@@ -85,11 +85,13 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
  
       if ( textCount == 0 ) {
 
-        text = '<P>' + entry[ 1 ] + '<P>';
+//        text = '<P>' + entry[ 1 ] + '<P>';
+        text = entry[ 1 ];
 
       } else {
 
-        text += '<P>' + entry[ 1 ] + '<P>';
+//        text += '<P>' + entry[ 1 ] + '<P>';
+        text += entry[ 1 ]; 
 
       }
       textCount += 1;        
