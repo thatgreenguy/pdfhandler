@@ -24,7 +24,7 @@ smtpTransport = nodemailer.createTransport( "SMTP", {
 module.exports.sendEmail = function( pargs, postMailCb ) {
 
   var email,
-    from = 'noreply@dlink.com',
+    from = 'noreply@dlink.eu',
     to = '',
     subject = '',
     cc = '', 
