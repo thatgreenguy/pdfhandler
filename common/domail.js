@@ -278,7 +278,7 @@ function copyPdf( parg, cb ) {
   } else {
 
     // Copy the PDF or the CSV file
-    if ( parg.mailCsv !== 'Y' ) {
+    if ( parg.mailOptions.EMAIL_CSV !== 'Y' ) {
 
       cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.pdf';
       log.v( parg.newPdf + parg.cmd + ' - Copy report to be mailed and give it a .pdf extension' );
