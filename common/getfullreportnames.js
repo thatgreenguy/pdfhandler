@@ -6,6 +6,7 @@ var async = require( 'async' ),
   determinemailingoptions = require( './determinemailingoptions.js' ),
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB,
+  jdeExeHost = process.env.JDE_EXEHOST,
   credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
   
 
@@ -23,8 +24,8 @@ module.exports.getFullReportVersionNames = function(  parg, cbWhenDone ) {
     ver,
     opt,
     val,
-    wka,
-    tmpobj;
+    tmpobj,
+    jdeJobNbr = '';
 
 
   // Originally pulling Report and Verison name from jcfndfuf2 but this field has limited space to accomodate full length report (10), version (10) and jobnbr (1-15) as jobnbr grows
@@ -48,8 +49,12 @@ module.exports.getFullReportVersionNames = function(  parg, cbWhenDone ) {
     // None = No Mail processing required so signal to update status to 999 'Complete'
     // If 1 or more entries then need to examine them in detail as Version level entries can override Report level ones.
   
-    sql = "SELECT UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 44, 1)) as rptver FROM " + jdeEnvDb.trim() + ".F556110 WHERE jcexehost = 'host' AND jcjobnbr = '12345'";
-    log.d( sql );
+    // Need to extract Job number from Job PDF 'REPORTNM_VERNM_JOBNBR_PDF' 
+    wka = parg.newPdf.split( '_' );
+    jdeJobNbr = wka[ 2 ];
+
+    sql = "SELECT UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 1)) as reportname, UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 23)) as version FROM " + jdeEnvDb.trim() + ".F556110 WHERE jcexehost = '" + jdeExeHost.trim() + "' AND jcjobnbr = '" + jdeJobNbr.trim() + "'";
+    log.d( parg.newPdf + ' : ' + sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
       if ( err ) {
@@ -68,10 +73,10 @@ module.exports.getFullReportVersionNames = function(  parg, cbWhenDone ) {
 
       if ( rowCount > 0 ) {
  
-        // Going in on unique key so only expecting 1 record or none!
-        parg.fullReportName = 'mickey';
-        parg.fullVersionName = 'mouse';
-
+        // Strip nulls out of returned blob data leaving just characters - note sql uses unique key so only expecting 1 record or none!
+        log.d( parg.newPdf + ' : Row : ' + row );
+        parg.fullReportName = row[ 0 ].replace( /\u0000/g, '' );
+        parg.fullVersionName = row[ 1 ].replace( /\u0000/g, '' );
         log.v( parg.newPdf + ' Full Report / Version Names are: ' + JSON.stringify( parg.fullReportName + ' / ' + parg.fullVersionName ) );
       
       } else {
@@ -81,7 +86,7 @@ module.exports.getFullReportVersionNames = function(  parg, cbWhenDone ) {
 
       }
      
-      // Ensure conenction resource released then return
+      // Ensure connection resource released then return
       dbc.release( function( err ) {
         if ( err ) {
           log.e( ' Unable to release Jde Db connection : ' + err );
