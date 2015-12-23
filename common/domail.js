@@ -50,6 +50,7 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { lockPdf( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
+        function( cb ) { getFullReportVersionNames( parg, cb ) },
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { auditLogMailOptions( parg, cb ) },
@@ -195,6 +196,58 @@ function lockPdf( parg, cb ) {
 
     }
   });
+
+}
+
+
+function getFullReportVersionNames( parg, cb ) {
+
+  var pdfInput,
+    pdfOutput,
+    cmd,
+    option;
+
+  log.v( parg.newPdf + ' : Get Full (Non Truncated) Report and Version Names ' );
+  parg.cmd = 'GET FULL NAMES | ';
+  parg.cmdResult = ' ';
+
+  // Ensure we start with Mail Option collections empty
+  parg.fullReportName = null;
+  parg.fullVersionName = null;
+
+
+  getfullreportnames.getFullReportVersionNames( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.e( parg.newPdf + ' : Error trying to get Full Report / Version Names : ' + err );    
+      parg.mailSent = 'N';
+      parg.mailReason = 'Failed to determine non-truncated Report / Version Names';
+      parg.cmdResult += 'Email No : ' + parg.mailReason + ': ' + result;
+      return cb( err, parg.cmdResult );
+
+    } else {
+
+      log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
+      log.v( parg.newPdf + ' Full Report / Version Names are : ' + JSON.stringify( parg.fullReportName + ' / ' + parg.fullVersionName ) );     
+
+      if ( parg.fullReportName !== null ) {
+
+        // We have the full non-truncated Report and Version names to work with so continue and check config
+        log.v( parg.newPdf + ' MailOptions indicate Email should be sent and an EMAIL_TO is available to send to! ');
+        return cb( null, parg.cmdResult );
+
+      } else {
+
+        // If we don't have the full report and verison names something is wrong - can't check mail config properly so error and give up
+        log.e( parg.newPdf + ' : Error trying to get Full Report / Version Names : ' + err );    
+        parg.mailReason = 'Failed to determine non-truncated Report / Version Names';
+        parg.cmdResult += 'Email No : ' + parg.mailReason + ': ' + result;
+        return cb( null, parg.cmdResult );
+
+      }
+    }
+  });  
 
 }
 
