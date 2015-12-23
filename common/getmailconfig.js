@@ -27,15 +27,26 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
     tmpobj;
 
 
-  // Split passed PDF name extracting Report and Version name elements
-  // Note: Report names and version names are expected to be less than 17 chars combined due to truncation
-  // bug in JDE with long report/version names : in short if you looking at this wondering why your report / version overrides aren't getting picked up
-  // makes sure the PDF has the full version name - if not change your version name to reduce length! 
-  // By default if DB error or no config options setup returns mailOptions with EMAIL=N otherwsie returns mailOptions as setup in F559890
+  // Replace Split of passed PDF name extracting Report and Version name elements with retrieving Report and Version name elements from Blob in Job Control record because 
+  // the data in the blob (Version Name) is NOT truncated when job number starts getting longer.
   
   wka = parg.newPdf.split("_");
   parg.pdfReportName = wka[0];
   parg.pdfVersionName = wka[1];
+
+  log.v( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
+  log.v( parg.newPdf + ' : Version Name : ' + parg.pdfReportName );
+
+  // Setting PDF Report Name and Version by splitting PDF Job string 'Rxxxxxx_Vxxxxxx_1234546_PDF' doesn't work long term because as the Job Number
+  // grows the JDE system starts to truncate the Version Name. Luckily the Job Control record has a blob which contains the full report name and version name
+  // So use them instead to ensure we always read the correct Mail configuration
+  parg.pdfReportName = parg.fullReportName;
+  parg.pdfVersionName = parg.fullVersionName;
+
+  log.v( parg.newPdf + ' : Full Report Name : ' + parg.pdfReportName );
+  log.v( parg.newPdf + ' : Full Version Name : ' + parg.pdfReportName ); 
+
+  // Set Email to No prior to checking Mail Configuration
   parg.mailOptions = { 'EMAIL': 'N' };
 
   log.d( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
