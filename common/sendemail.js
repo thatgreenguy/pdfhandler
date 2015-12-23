@@ -47,7 +47,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   //
   // If JDE Mail From Environment indicator not provided e.g. PY/UAT or PD then use the provided JDE_ENV value as fallback (usually DV812, PY812 etc)
   if ( typeof( jdeMailEnv ) === 'undefined' ) {
-    jdeMailEnv = jdeEnv;
+    jdeMailEnv = jdeEnv + ' ';
   } 
 
   // If JDE Mail Environment indicator is just spaces then set it to empty string
@@ -69,7 +69,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   // Default Subject is JDE environment indicator + subject text + PDF Job Details  
   // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead
-  subject = jdeEnvMail + subject + ' ' + jdeJob;
+  subject = jdeMailEnv + subject + ' ' + jdeJob;
 
 
   // DEFAULT TEXT
