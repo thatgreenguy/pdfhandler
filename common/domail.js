@@ -7,6 +7,7 @@ var oracledb = require( 'oracledb' ),
   auditlog = require( './auditlog.js' ),
   lockpdf = require( './lockpdf.js' ),
   getmailconfig = require( './getmailconfig.js' ),
+  getfullreportnames = require( './getfullreportnames.js' ),
   sendemail = require( './sendemail.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
   updatepdfstatus = require( './updatepdfstatus.js' ),
@@ -234,14 +235,14 @@ function getFullReportVersionNames( parg, cb ) {
       if ( parg.fullReportName !== null ) {
 
         // We have the full non-truncated Report and Version names to work with so continue and check config
-        log.v( parg.newPdf + ' MailOptions indicate Email should be sent and an EMAIL_TO is available to send to! ');
+        log.v( parg.newPdf + ' Non truncated Report / Version names retrieved - continue checking mail config! ');
         return cb( null, parg.cmdResult );
 
       } else {
 
         // If we don't have the full report and verison names something is wrong - can't check mail config properly so error and give up
         log.e( parg.newPdf + ' : Error trying to get Full Report / Version Names : ' + err );    
-        parg.mailReason = 'Failed to determine non-truncated Report / Version Names';
+        parg.mailReason = 'Failed to determine non-truncated Report / Version Names - something wrong!';
         parg.cmdResult += 'Email No : ' + parg.mailReason + ': ' + result;
         return cb( null, parg.cmdResult );
 
