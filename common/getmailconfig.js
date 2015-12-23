@@ -35,7 +35,7 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
   parg.pdfVersionName = wka[1];
 
   log.v( parg.newPdf + ' : Report Name : ' + parg.pdfReportName );
-  log.v( parg.newPdf + ' : Version Name : ' + parg.pdfReportName );
+  log.v( parg.newPdf + ' : Version Name : ' + parg.pdfVersionName );
 
   // Setting PDF Report Name and Version by splitting PDF Job string 'Rxxxxxx_Vxxxxxx_1234546_PDF' doesn't work long term because as the Job Number
   // grows the JDE system starts to truncate the Version Name. Luckily the Job Control record has a blob which contains the full report name and version name
@@ -44,7 +44,7 @@ module.exports.getMailConfig = function(  parg, cbWhenDone ) {
   parg.pdfVersionName = parg.fullVersionName;
 
   log.v( parg.newPdf + ' : Full Report Name : ' + parg.pdfReportName );
-  log.v( parg.newPdf + ' : Full Version Name : ' + parg.pdfReportName ); 
+  log.v( parg.newPdf + ' : Full Version Name : ' + parg.pdfVersionName ); 
 
   // Set Email to No prior to checking Mail Configuration
   parg.mailOptions = { 'EMAIL': 'N' };
