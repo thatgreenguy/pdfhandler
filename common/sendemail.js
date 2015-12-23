@@ -69,7 +69,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   // Default Subject is JDE environment indicator + subject text + PDF Job Details  
   // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead
-  subject = jdeMailEnv + subject + ' ' + jdeJob;
+  subject = jdeMailEnv + subject + ' ' + pargs.fullReportName + ' ' + pargs.fullVersionName + ' (' + jdeJob + ')';
 
 
   // DEFAULT TEXT
