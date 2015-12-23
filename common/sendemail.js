@@ -5,6 +5,9 @@ var nodemailer = require( 'nodemailer' ),
   smtphost = process.env.MAIL_HOST,
   smtpport = process.env.MAIL_PORT,
   jdeEnv = process.env.JDE_ENV,
+  jdeMailEnv = process.env.JDE_MAIL_ENV,
+  jdeMailSub = process.env.JDE_MAIL_SUB,
+  jdeMailTxt = process.env.JDE_MAIL_TXT,
   jdeEnvDb = process.env.JDE_ENV_DB;
 
 
@@ -40,11 +43,52 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   jdeJob = pargs.newPdf;
   mailOptions = pargs.mailOptionsArray;
 
+  // DEFAULT MAIL ENVIRONMENT
+  //
+  // If JDE Mail From Environment indicator not provided e.g. PY/UAT or PD then use the provided JDE_ENV value as fallback (usually DV812, PY812 etc)
+  if ( typeof( jdeMailEnv ) === 'undefined' ) {
+    jdeMailEnv = jdeEnv;
+  } 
 
-  // Provide default values for Subject and Text (can be overridden by PDFMAIL configuration options)
-  subject = 'Dlink JDE Report : ' + jdeJob;
-  text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
-  
+  // If JDE Mail Environment indicator is just spaces then set it to empty string
+  if ( jdeMailEnv.trim() === 0 ) {
+    jdeMailEnv = '';
+  }
+
+
+  // DEFAULT MAIL SUBJECT
+  //
+  // Provide default Subject Text use environment variable or hard coded fallback value if not set
+  // Subject will be prepended by JDE Environment (DV, PY or PD) and suffixed with JDE PDF Job Name
+  // Subject can of course be overridden in mail config at Report and/or Version level  
+  if ( typeof( jdeMailSub ) !== 'undefined' ) {
+    subject = jdeMailSub;
+  } else {
+    subject = 'Dlink JDE Report'; 
+  }
+
+  // Default Subject is JDE environment indicator + subject text + PDF Job Details  
+  // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead
+  subject = jdeEnvMail + subject + ' ' + jdeJob;
+
+
+  // DEFAULT TEXT
+  //  
+  // Provide Default Text - use passed environment variable or if not available fallback to hard coded text here
+  // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead  
+  if ( typeof( jdeMailTxt ) === 'undefined' ) {
+    text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
+  } else {
+    text = jdeMailTxt;
+  }
+
+  log.v( pargs.newPdf + ' DEFAULT SUBJECT: ' + subject );
+  log.v( pargs.newPdf + ' DEFAULT TEXT:    ' + text );
+
+  // CONFIGURED MAIL OPTIONS
+  //
+  // Default values will be overridden by any mail options configured at Report and/or Version level
+  // Build up all mailing options for this JDE PDF Job/Report
   for ( var i = 0; i < mailOptions.length; i++ ) {
 
     entry = mailOptions[ i ];
@@ -81,16 +125,12 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
     if ( entry[ 0 ] === 'EMAIL_TEXT' ) {
 
-      // Wrap basic HTML around text content from JDE Config file 
- 
       if ( textCount == 0 ) {
 
-//        text = '<P>' + entry[ 1 ] + '<P>';
         text = entry[ 1 ];
 
       } else {
 
-//        text += '<P>' + entry[ 1 ] + '<P>';
         text += entry[ 1 ]; 
 
       }
@@ -120,21 +160,21 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   if ( ! to ) {
  
-    log.w( 'No TO recipient defined - unable to send this email' );
+    log.w( pargs.newPdf + ' No TO recipient defined - unable to send this email' );
     mailOptions.mailenabled = 'N';
     email = 'N';
     return postMailCb( null );
 
   }
 
-  log.i( 'EMAIL: ' + email );
-  log.i( 'FROM: ' + from );
-  log.i( 'TO: ' + to );
-  log.i( 'SUBJECT: ' + subject );
-  log.i( 'CC: ' + cc );
-  log.i( 'BCC: ' + bcc );
-  log.i( 'TEXT: ' + text );
-  log.i( 'ATT: ' + attachments );
+  log.i( pargs.newPdf + ' EMAIL: ' + email );
+  log.i( pargs.newPdf + ' FROM: ' + from );
+  log.i( pargs.newPdf + ' TO: ' + to );
+  log.i( pargs.newPdf + ' SUBJECT: ' + subject );
+  log.i( pargs.newPdf + ' CC: ' + cc );
+  log.i( pargs.newPdf + ' BCC: ' + bcc );
+  log.i( pargs.newPdf + ' TEXT: ' + text );
+  log.i( pargs.newPdf + ' ATT: ' + attachments );
 
   mo['from'] = from;
   mo['to'] = to;
