@@ -5,9 +5,6 @@ var nodemailer = require( 'nodemailer' ),
   smtphost = process.env.MAIL_HOST,
   smtpport = process.env.MAIL_PORT,
   jdeEnv = process.env.JDE_ENV,
-  jdeMailEnv = process.env.JDE_MAIL_ENV,
-  jdeMailSub = process.env.JDE_MAIL_SUB,
-  jdeMailTxt = process.env.JDE_MAIL_TXT,
   jdeEnvDb = process.env.JDE_ENV_DB;
 
 
@@ -30,9 +27,14 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
     from = 'noreply@dlink.eu',
     to = '',
     subject = '',
+    subjectPrefix = '',
+    subjectPostfix = '',
     cc = '', 
     bcc = '',
+    textHeader = '',
     text = '',
+    textDisclaimer = '',
+    textFooter = '',
     attachments = [],
     wrk = {},
     entry,
@@ -43,51 +45,14 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   jdeJob = pargs.newPdf;
   mailOptions = pargs.mailOptionsArray;
 
-  // DEFAULT MAIL ENVIRONMENT
-  //
-  // If JDE Mail From Environment indicator not provided e.g. PY/UAT or PD then use the provided JDE_ENV value as fallback (usually DV812, PY812 etc)
-  if ( typeof( jdeMailEnv ) === 'undefined' ) {
-    jdeMailEnv = jdeEnv + ' ';
-  } 
+  // First set application level defaults for Subject and Text related fields
+  setApplicationDefaults( pargs.mailDefaultOptions );
 
-  // If JDE Mail Environment indicator is just spaces then set it to empty string
-  if ( jdeMailEnv.trim() === 0 ) {
-    jdeMailEnv = '';
-  }
+  // Fisrt set application level defaults for Subject and Text related fields
+  setAllMailingOptions( pargs.mailDefaultOptions );
 
-
-  // DEFAULT MAIL SUBJECT
-  //
-  // Provide default Subject Text use environment variable or hard coded fallback value if not set
-  // Subject will be prepended by JDE Environment (DV, PY or PD) and suffixed with JDE PDF Job Name
-  // Subject can of course be overridden in mail config at Report and/or Version level  
-  if ( typeof( jdeMailSub ) !== 'undefined' ) {
-    subject = jdeMailSub;
-  } else {
-    subject = 'Dlink JDE Report'; 
-  }
-
-  // Default Subject is JDE environment indicator + subject text + PDF Job Details  
-  // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead
-  subject = jdeMailEnv + subject + ' ' + pargs.fullReportName + ' ' + pargs.fullVersionName + ' (' + jdeJob + ')';
-
-
-  // DEFAULT TEXT
-  //  
-  // Provide Default Text - use passed environment variable or if not available fallback to hard coded text here
-  // Remember this is a default - if a value is provided at Report and/or Version level then that value will be used instead  
-  if ( typeof( jdeMailTxt ) === 'undefined' ) {
-    text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.'; 
-  } else {
-    text = jdeMailTxt;
-  }
-
-  log.v( pargs.newPdf + ' DEFAULT SUBJECT: ' + subject );
-  log.v( pargs.newPdf + ' DEFAULT TEXT:    ' + text );
-
-  // CONFIGURED MAIL OPTIONS
-  //
-  // Default values will be overridden by any mail options configured at Report and/or Version level
+  // Next set mailing options according to whatever was configured for the Report/Version
+  // Note if Subject/Text options exist here they will overwrite anything configured at the application level
   // Build up all mailing options for this JDE PDF Job/Report
   for ( var i = 0; i < mailOptions.length; i++ ) {
 
@@ -123,6 +88,28 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       subject = entry[ 1 ];
     }
 
+    if ( entry[ 0 ] === 'EMAIL_SUBJECT_PREFIX' ) {
+      email = entry[ 1 ];
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_SUBJECT_POSTFIX' ) {
+      email = entry[ 1 ];
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT_HEADER' ) {
+
+      if ( textHeaderCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textHeaderCount += 1;        
+    }
+
     if ( entry[ 0 ] === 'EMAIL_TEXT' ) {
 
       if ( textCount == 0 ) {
@@ -137,9 +124,38 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       textCount += 1;        
     }
 
+    if ( entry[ 0 ] === 'EMAIL_TEXT_DISCLAIMER' ) {
+
+      if ( textDisclaimerCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textDisclaimerCount += 1;        
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT_FOOTER' ) {
+
+      if ( textFooterCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textFooterCount += 1;        
+    }
+
     if ( entry[ 0 ] === 'EMAIL_FROM' ) {
       from = entry[ 1 ];
     }
+
     if ( entry[ 0 ] === 'EMAIL_CSV' ) {
       csv = entry[ 1 ];
     }
@@ -171,17 +187,25 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   log.i( pargs.newPdf + ' FROM: ' + from );
   log.i( pargs.newPdf + ' TO: ' + to );
   log.i( pargs.newPdf + ' SUBJECT: ' + subject );
+  log.i( pargs.newPdf + ' SUBJECT PREFIX: ' + subject );
+  log.i( pargs.newPdf + ' SUBJECT POSTFIX: ' + subject );
   log.i( pargs.newPdf + ' CC: ' + cc );
   log.i( pargs.newPdf + ' BCC: ' + bcc );
+  log.i( pargs.newPdf + ' TEXT HEADER: ' + textHeader );
   log.i( pargs.newPdf + ' TEXT: ' + text );
+  log.i( pargs.newPdf + ' TEXT DISCLAIMER: ' + textDisclaimer );
+  log.i( pargs.newPdf + ' TEXT FOOTER: ' + textFooter );
   log.i( pargs.newPdf + ' ATT: ' + attachments );
 
+
+  // Application Level Mailing Options have been considered, Report/Version Level options have been considered
+  // So finally set the actual mailing options we need to use when sending this Report / Version
   mo['from'] = from;
   mo['to'] = to;
-  mo['subject'] = subject;
+  mo['subject'] = subjectPrefix + subject + subjectPostfix;
 
   //  mo['text'] = text;
-  mo['html'] = text;
+  mo['html'] = textHeader + text + textDisclaimer + textFooter;
   if ( cc ) {
     mo['cc'] = cc;
   }
@@ -192,7 +216,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   log.v( JSON.stringify( mo ) );
 
-
+  // Now send the email with Report attachment
   if ( email === 'Y' ) {
     smtpTransport.sendMail( mo, 
     function(err, response) {
@@ -209,6 +233,113 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       }
     });
   } 
+}
+
+
+// Normally the mailing application will have some default values set for SUBJECT and TEXT
+// Set the defaults here for later use but if not yet defined fallback to some basic hard coded text values
+// until the application is properly configured
+function setApplicationDefaults { mailDefaultConfig ) {
+
+  var mailOptions,
+    textHeaderCount,
+    textCount,
+    textDisclaimerCount,
+    textFooterCount;
+
+  mailOptions = mailDefaultConfig;
+
+  // Loop through whatever application level defaults are available and set Subject, Text related default values
+  // according to configuration/setup found for the PDFHANDLER application under PDFMAIL and DEFAULT
+  for ( var i = 0; i < mailOptions.length; i++ ) {
+
+    entry = mailOptions[ i ];
+    log.v( entry );
+
+    if ( entry[ 0 ] === 'EMAIL_SUBJECT' ) {
+      subject = entry[ 1 ];
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_SUBJECT_PREFIX' ) {
+      email = entry[ 1 ];
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_SUBJECT_POSTFIX' ) {
+      email = entry[ 1 ];
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT_HEADER' ) {
+
+      if ( textHeaderCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textHeaderCount += 1;        
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT' ) {
+
+      if ( textCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textCount += 1;        
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT_DISCLAIMER' ) {
+
+      if ( textDisclaimerCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textDisclaimerCount += 1;        
+    }
+
+    if ( entry[ 0 ] === 'EMAIL_TEXT_FOOTER' ) {
+
+      if ( textFooterCount == 0 ) {
+
+        text = entry[ 1 ];
+
+      } else {
+
+        text += entry[ 1 ]; 
+
+      }
+      textFooterCount += 1;        
+    }
+
+  }
+
+  // If no configuration setup yet exists for Subject and/or Text then fallback to some sane hard coded textual defaults
+  // Until someone completes the application level defaults for these important items. Note these will only be used if no
+  // Report / Version specific configuration exists!
+  if ( subject ) { } else { subject = 'Dlink JDE Report' }; 
+  if ( text ) { } else { text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.' };
+
+  log.v( pargs.newPdf + ' DEFAULT SUBJECT PREFIX: ' + subjectPrefix );
+  log.v( pargs.newPdf + ' DEFAULT SUBJECT: ' + subject );
+  log.v( pargs.newPdf + ' DEFAULT SUBJECT POSTFIX: ' + subjectPostfix );
+  log.v( pargs.newPdf + ' DEFAULT TEXT HEADER:    ' + textHeader );
+  log.v( pargs.newPdf + ' DEFAULT TEXT:    ' + text );
+  log.v( pargs.newPdf + ' DEFAULT TEXT DISCLAIMER:    ' + textDisclaimer );
+  log.v( pargs.newPdf + ' DEFAULT TEXT FOOTER:    ' + textFooter );
+
 }
 
 
