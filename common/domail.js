@@ -53,10 +53,10 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { lockPdf( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { getFullReportVersionNames( parg, cb ) },
-        function( cb ) { fetchMailConfigDefaults( parg, cb ) },
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { auditLogMailOptions( parg, cb ) },
+        function( cb ) { fetchMailConfigDefaults( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { mailReport( parg, cb )}, 
@@ -255,41 +255,6 @@ function getFullReportVersionNames( parg, cb ) {
 }
 
 
-function fetchMailConfigDefaults( parg, cb ) {
-
-  var pdfInput,
-    pdfOutput,
-    cmd,
-    option;
-
-  log.v( parg.newPdf + ' : Fetch Default Mail Configuration Options.' );
-  parg.cmd = 'CHECK DFT CONFIG | ';
-  parg.cmdResult = ' ';
-  parg.mailDefaultOptions = [];
-
-  // Ensure we start with Default Mail Option collections empty
-  parg.mailDefaultOptions = null;
-
-  getmailconfigdefaults.getMailConfigDefaults( parg, function( err, result ) {
-
-    if ( err ) {
-
-      log.e( parg.newPdf + ' : Error trying to get PDFMAIL Default config/setup : ' + err );    
-      parg.cmdResult += 'Email No : Failed to check for mail default config/setup : ' + result;
-      return cb( err, parg.cmdResult );
-
-    } else {
-
-      log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
-      log.v( parg.newPdf + ' Mail Config Defaults check completed : ' + JSON.stringify( parg.mailDefaultOptions ) );     
-      return cb( null, parg.cmdResult );
-
-    }
-  });  
-
-}
-
-
 function checkConfiguration( parg, cb ) {
 
   var pdfInput,
@@ -352,6 +317,47 @@ function checkConfiguration( parg, cb ) {
 }
 
 
+function fetchMailConfigDefaults( parg, cb ) {
+
+  var pdfInput,
+    pdfOutput,
+    cmd,
+    option;
+
+  // Don't bother refreshing the application mail option defaults if not sending email for this job
+  if ( parg.mailEnabled != 'Y' ) { 
+
+    log.v( parg.newPdf + parg.cmd + ' : SKIP : Fetch of Default Config as Report Mailing Disabled ' );
+    return cb( null );
+
+  } else {
+
+    log.v( parg.newPdf + ' : Fetch Default Mail Configuration Options.' );
+    parg.cmd = 'CHECK DFT CONFIG | ';
+    parg.cmdResult = ' ';
+    parg.mailDefaultOptions = [];
+
+    // Ensure we start with Default Mail Option collections empty
+    parg.mailDefaultOptions = null;
+
+    getmailconfigdefaults.getMailConfigDefaults( parg, function( err, result ) {
+
+      if ( err ) {
+
+        log.e( parg.newPdf + ' : Error trying to get PDFMAIL Default config/setup : ' + err );    
+        parg.cmdResult += 'Email No : Failed to check for mail default config/setup : ' + result;
+        return cb( err, parg.cmdResult );
+
+      } else {
+
+        log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
+        log.v( parg.newPdf + ' Mail Config Defaults check completed : ' + JSON.stringify( parg.mailDefaultOptions ) );     
+        return cb( null, parg.cmdResult );
+
+      }
+    });  
+  }
+}
 
 
 function copyPdf( parg, cb ) {

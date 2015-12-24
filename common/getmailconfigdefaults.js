@@ -36,8 +36,8 @@ module.exports.getMailConfigDefaults = function(  parg, cbWhenDone ) {
     // These will be used along with mailoptions defined at Report and/or Version level to determine mail settings for this Job
   
     sql = "SELECT crblkk, crtaskmisc  FROM " + jdeEnvDb.trim() + ".F559890 ";
-    sql += parg.pdfReportName + " WHERE crpgm = 'PDFHANDLER' AND crvernm = 'PDFMAIL' AND crcfgsid = 'DEFAULT' ";
-    sql += parg.pdfReportName + " ORDER BY CRBLKK, CRSEQ";
+    sql += " WHERE crpgm = 'PDFHANDLER' AND crvernm = 'PDFMAIL' AND crcfgsid = 'DEFAULT' ";
+    sql += " ORDER BY CRBLKK, CRSEQ";
     log.d( sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
