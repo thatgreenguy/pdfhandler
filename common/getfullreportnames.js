@@ -6,6 +6,7 @@ var async = require( 'async' ),
   determinemailingoptions = require( './determinemailingoptions.js' ),
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB,
+  jdeEnvDbF556110 = process.env.JDE_ENV_DB_F556110,
   jdeExeHost = process.env.JDE_EXEHOST,
   credentials = { user: process.env.DB_USER, password: process.env.DB_PWD, connectString: process.env.DB_NAME };
   
@@ -53,7 +54,9 @@ module.exports.getFullReportVersionNames = function(  parg, cbWhenDone ) {
     wka = parg.newPdf.split( '_' );
     jdeJobNbr = wka[ 2 ];
 
-    sql = "SELECT UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 1)) as reportname, UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 23)) as version FROM " + jdeEnvDb.trim() + ".F556110 WHERE jcexehost = '" + jdeExeHost.trim() + "' AND jcjobnbr = '" + jdeJobNbr.trim() + "'";
+    sql = "SELECT UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 1)) as reportname, ";
+    sql += " UTL_RAW.CAST_TO_VARCHAR2(DBMS_LOB.SUBSTR(JCSRVBLOBA, 22, 23)) as version ";
+    sql += " FROM " + jdeEnvDbF556110.trim() + ".F556110 WHERE jcexehost = '" + jdeExeHost.trim() + "' AND jcjobnbr = '" + jdeJobNbr.trim() + "'";
     log.d( parg.newPdf + ' : ' + sql );
     dbc.execute( sql, binds, options, function( err, result ) {
 
