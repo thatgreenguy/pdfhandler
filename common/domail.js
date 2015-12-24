@@ -7,6 +7,7 @@ var oracledb = require( 'oracledb' ),
   auditlog = require( './auditlog.js' ),
   lockpdf = require( './lockpdf.js' ),
   getmailconfig = require( './getmailconfig.js' ),
+  getmailconfigdefaults = require( './getmailconfigdefaults.js' ),
   getfullreportnames = require( './getfullreportnames.js' ),
   sendemail = require( './sendemail.js' ),
   releaselockpdf = require( './releaselockpdf.js' ),
@@ -52,6 +53,7 @@ module.exports.doMail = function( parg, cbDone ) {
         function( cb ) { lockPdf( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { getFullReportVersionNames( parg, cb ) },
+        function( cb ) { fetchMailConfigDefaults( parg, cb ) },
         function( cb ) { checkConfiguration( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { auditLogMailOptions( parg, cb ) },
@@ -253,6 +255,41 @@ function getFullReportVersionNames( parg, cb ) {
 }
 
 
+function fetchMailConfigDefaults( parg, cb ) {
+
+  var pdfInput,
+    pdfOutput,
+    cmd,
+    option;
+
+  log.v( parg.newPdf + ' : Fetch Default Mail Configuration Options.' );
+  parg.cmd = 'CHECK DFT CONFIG | ';
+  parg.cmdResult = ' ';
+  parg.mailDefaultOptions = [];
+
+  // Ensure we start with Default Mail Option collections empty
+  parg.mailDefaultOptions = null;
+
+  getmailconfigdefaults.getMailConfigDefaults( parg, function( err, result ) {
+
+    if ( err ) {
+
+      log.e( parg.newPdf + ' : Error trying to get PDFMAIL Default config/setup : ' + err );    
+      parg.cmdResult += 'Email No : Failed to check for mail default config/setup : ' + result;
+      return cb( err, parg.cmdResult );
+
+    } else {
+
+      log.v( parg.newPdf + ' : ' + parg.cmd + ' : OK ' + result );
+      log.v( parg.newPdf + ' Mail Config Defaults check completed : ' + JSON.stringify( parg.mailDefaultOptions ) );     
+      return cb( null, parg.cmdResult );
+
+    }
+  });  
+
+}
+
+
 function checkConfiguration( parg, cb ) {
 
   var pdfInput,
@@ -313,6 +350,8 @@ function checkConfiguration( parg, cb ) {
   });  
 
 }
+
+
 
 
 function copyPdf( parg, cb ) {
