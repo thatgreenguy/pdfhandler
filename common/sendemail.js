@@ -340,7 +340,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   // So finally set the actual mailing options we need to use when sending this Report / Version
   // mo['text'] = constructEmailText( text );
   //
-  substitutionValues = setSubstitutionValues{ pargs };
+  substitutionValues = setSubstitutionValues( pargs );
   
   mo['from'] = from;
   mo['to'] = to;
@@ -407,7 +407,10 @@ function constructEmailSubject( prefix, text, postfix, subval ) {
   var result = '';
 
   result = prefix + text + postfix;
-  return checkReplaceMarkers( result, subval );
+log.d( 'constructEmailSubject: ' + result );
+  result = checkReplaceMarkers( result, subval );
+log.d( 'constructEmailSubject: ' + result );
+  return result;
 
 }
 
@@ -420,13 +423,16 @@ function constructEmailText( header, text, footer, disclaimer, subval ) {
   var result = '';
 
   result = header + text + footer + disclaimer;
-  return checkReplaceMarkers( result, subval );
+log.d( 'constructEmailSubject: ' + result );
+  result = checkReplaceMarkers( result, subval );
+log.d( 'constructEmailSubject: ' + result );
+  return result;
  
 }
 
 
 // Check for substitution markers and replace with required PDF attributes values
-function checkReplaceMarkers( text ) {
+function checkReplaceMarkers( text, subval ) {
 
   var result;
 
