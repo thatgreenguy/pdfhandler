@@ -25,7 +25,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   var email,
     from = '',
-    substitutionValues = {},
+    substitute = {},
     to = '',
     subject = '',
     subjectPrefix = '',
@@ -340,13 +340,13 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   // So finally set the actual mailing options we need to use when sending this Report / Version
   // mo['text'] = constructEmailText( text );
   //
-  substitutionValues.report = pargs.fullReportName;  
-  substitutionValues.version = pargs.fullVersionName;  
-  substitutionValues.job = pargs.newPdf;  
-  substitutionValues.jobnumber = parg.newPdf.split( '_' )[ 2 ];  
-  substitutionValues.env = jdeEnv.slice( 0, 1 );  
-  substitutionValues.environment = jdeEnv;  
-  log.d( JSON.stringify( substitionValues ) );
+  substitute.report = pargs.fullReportName;  
+  substitute.version = pargs.fullVersionName;  
+  substitute.job = pargs.newPdf;  
+  substitute.jobnumber = pargs.newPdf.split( '_' )[ 2 ];  
+  substitute.env = jdeEnv.slice( 0, 2 );  
+  substitute.environment = jdeEnv;  
+  log.d( JSON.stringify( substitute ) );
   
   mo['from'] = from;
   mo['to'] = to;
