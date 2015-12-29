@@ -59,7 +59,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
     entry = pargs.mailDefaultOptions[ i ];
     entry[ 0 ] = entry[ 0 ].trim();
-    entry[ 1 ] = entry[ 1 ].trim();
+    //entry[ 1 ] = entry[ 1 ].trim();
     log.v( entry );
 
     if ( entry[ 0 ] === 'EMAIL_FROM' ) {
@@ -154,7 +154,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   if ( typeof( subject ) != 'undefined' && subject.length > 0 ) {
     // Something is in Subject so don't apply last resort default value!
   } else {
-    subject = 'Dlink JDE Report $JOB';
+    subject = '<!--ENVIRONMENT--> Dlink JDE Report <!--REPORT--> <!--VERSION--> <!--JOBNUMBER-->';
   }
 
   //
