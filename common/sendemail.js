@@ -340,12 +340,35 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   // So finally set the actual mailing options we need to use when sending this Report / Version
   // mo['text'] = constructEmailText( text );
   //
-  substitutionValues = setSubstitutionValues( pargs );
+  substitutionValues.report = pargs.fullReportName;  
+  substitutionValues.version = pargs.fullVersionName;  
+  substitutionValues.job = pargs.newPdf;  
+  substitutionValues.jobnumber = parg.newPdf.split( '_' )[ 2 ];  
+  substitutionValues.env = jdeEnv.slice( 0, 1 );  
+  substitutionValues.environment = jdeEnv;  
+  log.d( JSON.stringify( substitionValues ) );
   
   mo['from'] = from;
   mo['to'] = to;
-  mo['subject'] = constructEmailSubject( subjectPrefix, subject, subjectPostfix, substitutionValues );
-  mo['html'] = constructEmailText( textHeader, text, textFooter, textDisclaimer, substitutionValues );
+  mo['subject'] = subjectPrefix +  subject + subjectPostfix;
+  mo['html'] = textHeader + text + textFooter + textDisclaimer;
+
+  // Subject and Text may contain substitution markers for PDF Report Name, Version, Job, Job Number and/or Environment
+  // Check for any markers and replace with appropriate value
+  mo['subject'] = mo['subject'].split( '<!--REPORT-->' ).join( substitute.report );
+  mo['subject'] = mo['subject'].split( '<!--VERSION-->' ).join( substitute.version );
+  mo['subject'] = mo['subject'].split( '<!--JOBNUMBER-->' ).join( substitute.jobnumber );
+  mo['subject'] = mo['subject'].split( '<!--JOB-->' ).join( substitute.job );
+  mo['subject'] = mo['subject'].split( '<!--ENV-->' ).join( substitute.env );
+  mo['subject'] = mo['subject'].split( '<!--ENVIRONMENT-->' ).join( substitute.environment );
+
+  mo['html'] = mo['html'].split( '<!--REPORT-->' ).join( substitute.report );
+  mo['html'] = mo['html'].split( '<!--VERSION-->' ).join( substitute.version );
+  mo['html'] = mo['html'].split( '<!--JOBNUMBER-->' ).join( substitute.jobnumber );
+  mo['html'] = mo['html'].split( '<!--JOB-->' ).join( substitute.job );
+  mo['html'] = mo['html'].split( '<!--ENV-->' ).join( substitute.env );
+  mo['html'] = mo['html'].split( '<!--ENVIRONMENT-->' ).join( substitute.environment );
+
   if ( cc ) {
     mo['cc'] = cc;
   }
@@ -373,80 +396,6 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       }
     });
   } 
-}
-
-
-// JDE Oneworld PDF Reports are identified by Report Name, Version Name, Job Number and a mix of these values known as Job id
-// These four values are available to be used in EMAIL_SUBJECT and EMAIL_TEXT
-// If the special substitution markers REPORT, VERSION, JOBNUMBER and/or JOB are found embedded in Subject/Text contained in HTML comments <-- -->
-// Then they are switched with the actual PDF values
-// This function makes these values available for each PDF
-//
-function setSubstitutionValues( pargs ) {
-
-  var result = {},
-    wka = null;
-
-  result.report = pargs.fullReportName;  
-  result.version = pargs.fullVersionName;  
-  result.job = pargs.newPdf;
-  wka = result.job.split( '_' );
-  result.jobnumber = wka[ 2 ];
-
-  log.d( JSON.stringify( result ) );
-
-  return result;
-}
-
-
-// Email Subject is constituted from a Prefix, subject text and a postfix
-// These subject parts may contain substitution markers for PDF Report Name, Version, Job and/or Job Number
-//
-function constructEmailSubject( prefix, text, postfix, subval ) {
-
-  var result = '';
-
-  result = prefix + text + postfix;
-log.d( 'constructEmailSubject: ' + result );
-  result = checkReplaceMarkers( result, subval );
-log.d( 'constructEmailSubject: ' + result );
-  return result;
-
-}
-
-
-// Email Text is constituted from Header, Text, Footer and/or Disclaimer sections
-// These sub-sections may contain substitution markers for PDF Report Name, Version, Job and/or Job Number
-//
-function constructEmailText( header, text, footer, disclaimer, subval ) {
-
-  var result = '';
-
-  result = header + text + footer + disclaimer;
-log.d( 'constructEmailSubject: ' + result );
-  result = checkReplaceMarkers( result, subval );
-log.d( 'constructEmailSubject: ' + result );
-  return result;
- 
-}
-
-
-// Check for substitution markers and replace with required PDF attributes values
-function checkReplaceMarkers( text, subval ) {
-
-  var result;
-
-  result = text;
-  log.d( 'chkrep:::' + result );
-  result = result.split( '<!--REPORT-->' ).join( subval.report );
-  log.d( 'chkrep:::' + result );
-  result = result.split( '<!--VERSION-->' ).join( subval.version );
-  log.d( 'chkrep:::' + result );
-  result = result.split( '<!--JOBNUMBER-->' ).join( subval.jobnumber );
-  log.d( 'chkrep:::' + result );
-  result = result.split( '<!--JOB-->' ).join( subval.job );
-  log.d( 'chkrep:::' + result );
-
 }
 
 
