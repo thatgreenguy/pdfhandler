@@ -24,7 +24,8 @@ smtpTransport = nodemailer.createTransport( "SMTP", {
 module.exports.sendEmail = function( pargs, postMailCb ) {
 
   var email,
-    from = 'noreply@dlink.eu',
+    from = '',
+    substitutionValues = {},
     to = '',
     subject = '',
     subjectPrefix = '',
@@ -50,7 +51,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   // STAGE 1
   // 
-  // Consider the Report / Version Mailing Options
+  // Consider the PDFHANDLER / PDFMAIL Application Level DEFAULT Options
 
   // Loop through whatever application level defaults are available and set Subject, Text related default values
   // according to configuration/setup found for the PDFHANDLER application under PDFMAIL and DEFAULT
@@ -60,6 +61,10 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
     entry[ 0 ] = entry[ 0 ].trim();
     entry[ 1 ] = entry[ 1 ].trim();
     log.v( entry );
+
+    if ( entry[ 0 ] === 'EMAIL_FROM' ) {
+      from = entry[ 1 ];
+    }
 
     if ( entry[ 0 ] === 'EMAIL_SUBJECT' ) {
       subject = entry[ 1 ];
@@ -131,21 +136,37 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   }
 
-  // If no configuration setup yet exists for Subject and/or Text then fallback to some sane hard coded textual defaults
+  // If no Default configuration setup yet exists for Subject and/or Text then fallback to some sane hard coded textual defaults
   // Until someone completes the application level defaults for these important items. Note these will only be used if no
   // Report / Version specific configuration exists!
+  //
+  // Application Level DEFAULT FROM Value
+  // 
+  if ( typeof( from ) != 'undefined' && from.length > 0 ) {
+    // Something is in DEFAULT FROM so don't apply last resort default value!
+  } else {
+    from = 'noreply@dlink.eu';
+  }
+
+  //
+  // Application Level DEFAULT SUBJECT Value
+  // 
   if ( typeof( subject ) != 'undefined' && subject.length > 0 ) {
     // Something is in Subject so don't apply last resort default value!
   } else {
-    subject = 'Dlink JDE Report';
+    subject = 'Dlink JDE Report $JOB';
   }
 
+  //
+  // Application Level DEFAULT TEXT Value
+  // 
   if ( typeof( text ) != 'undefined' && text.length > 0 ) {
     // Something is in Text so don't apply last resort default value!
   } else { 
     text = 'This is an automated email delivery of a report from the Dlink JDE ERP system. Please see attached report.';
   }
 
+  log.v( pargs.newPdf + ' DEFAULT FROM: ' + from );
   log.v( pargs.newPdf + ' DEFAULT SUBJECT PREFIX: ' + subjectPrefix );
   log.v( pargs.newPdf + ' DEFAULT SUBJECT: ' + subject );
   log.v( pargs.newPdf + ' DEFAULT SUBJECT POSTFIX: ' + subjectPostfix );
@@ -158,14 +179,12 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   // STAGE 2
   // 
   // Now consider the Report / Version Mailing Options which can overwrite any Application Level Defaults
+  //
   textHeaderCount = 0;
   textCount = 0;
   textDisclaimerCount = 0;
   textFooterCount= 0;
   mailOptions = pargs.mailOptionsArray;
-
-  // First set application level defaults for Subject and Text related fields
-  setApplicationDefaults( pargs.mailDefaultOptions, pargs );
 
   // Next set mailing options according to whatever was configured for the Report/Version
   // Note if Subject/Text options exist here they will overwrite anything configured at the application level
@@ -178,6 +197,11 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
     if ( entry[ 0 ] === 'EMAIL' ) {
       email = entry[ 1 ];
     }
+
+    if ( entry[ 0 ] === 'EMAIL_FROM' ) {
+      from = entry[ 1 ];
+    }
+
     if ( entry[ 0 ] === 'EMAIL_TO' ) {
       if ( to ) {
         to += ', ' + entry[ 1 ];
@@ -185,6 +209,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
         to = entry[ 1 ];
       }
     }
+
     if ( entry[ 0 ] === 'EMAIL_CC' ) {
       if ( cc ) {
         cc += ', ' + entry[ 1 ];
@@ -192,6 +217,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
         cc = entry[ 1 ];
       }
     }
+
     if ( entry[ 0 ] === 'EMAIL_BCC' ) {
       if ( bcc ) {
         bcc += ', ' + entry[ 1 ];
@@ -200,16 +226,20 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       }
     }
 
+    if ( entry[ 0 ] === 'EMAIL_CSV' ) {
+      csv = entry[ 1 ];
+    }
+
     if ( entry[ 0 ] === 'EMAIL_SUBJECT' ) {
       subject = entry[ 1 ];
     }
 
     if ( entry[ 0 ] === 'EMAIL_SUBJECT_PREFIX' ) {
-      email = entry[ 1 ];
+      subjectPrefix = entry[ 1 ];
     }
 
     if ( entry[ 0 ] === 'EMAIL_SUBJECT_POSTFIX' ) {
-      email = entry[ 1 ];
+      subjectPostfix = entry[ 1 ];
     }
 
     if ( entry[ 0 ] === 'EMAIL_TEXT_HEADER' ) {
@@ -268,14 +298,6 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
       textFooterCount += 1;        
     }
 
-    if ( entry[ 0 ] === 'EMAIL_FROM' ) {
-      from = entry[ 1 ];
-    }
-
-    if ( entry[ 0 ] === 'EMAIL_CSV' ) {
-      csv = entry[ 1 ];
-    }
-
   }
 
 
@@ -316,12 +338,14 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   // Application Level Mailing Options have been considered, Report/Version Level options have been considered
   // So finally set the actual mailing options we need to use when sending this Report / Version
+  // mo['text'] = constructEmailText( text );
+  //
+  substitutionValues = setSubstitutionValues{ pargs };
+  
   mo['from'] = from;
   mo['to'] = to;
-  mo['subject'] = subjectPrefix + subject + subjectPostfix;
-
-  //  mo['text'] = text;
-  mo['html'] = textHeader + text + textDisclaimer + textFooter;
+  mo['subject'] = constructEmailSubject( subjectPrefix, subject, subjectPostfix, substitutionValues );
+  mo['html'] = constructEmailText( textHeader, text, textFooter, textDisclaimer, substitutionValues );
   if ( cc ) {
     mo['cc'] = cc;
   }
@@ -352,11 +376,70 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 }
 
 
-// Normally the mailing application will have some default values set for SUBJECT and TEXT
-// Set the defaults here for later use but if not yet defined fallback to some basic hard coded text values
-// until the application is properly configured
-function setApplicationDefaults( mailDefaultConfig, pargs ) {
+// JDE Oneworld PDF Reports are identified by Report Name, Version Name, Job Number and a mix of these values known as Job id
+// These four values are available to be used in EMAIL_SUBJECT and EMAIL_TEXT
+// If the special substitution markers REPORT, VERSION, JOBNUMBER and/or JOB are found embedded in Subject/Text contained in HTML comments <-- -->
+// Then they are switched with the actual PDF values
+// This function makes these values available for each PDF
+//
+function setSubstitutionValues( pargs ) {
 
+  var result = {},
+    wka = null;
+
+  result.report = pargs.fullReportName;  
+  result.version = pargs.fullVersionName;  
+  result.job = pargs.newPdf;
+  wka = result.job.split( '_' );
+  result.jobnumber = wka[ 2 ];
+
+  log.d( JSON.stringify( result ) );
+
+  return result;
+}
+
+
+// Email Subject is constituted from a Prefix, subject text and a postfix
+// These subject parts may contain substitution markers for PDF Report Name, Version, Job and/or Job Number
+//
+function constructEmailSubject( prefix, text, postfix, subval ) {
+
+  var result = '';
+
+  result = prefix + text + postfix;
+  return checkReplaceMarkers( result, subval );
+
+}
+
+
+// Email Text is constituted from Header, Text, Footer and/or Disclaimer sections
+// These sub-sections may contain substitution markers for PDF Report Name, Version, Job and/or Job Number
+//
+function constructEmailText( header, text, footer, disclaimer, subval ) {
+
+  var result = '';
+
+  result = header + text + footer + disclaimer;
+  return checkReplaceMarkers( result, subval );
+ 
+}
+
+
+// Check for substitution markers and replace with required PDF attributes values
+function checkReplaceMarkers( text ) {
+
+  var result;
+
+  result = text;
+  log.d( 'chkrep:::' + result );
+  result = result.split( '<!--REPORT-->' ).join( subval.report );
+  log.d( 'chkrep:::' + result );
+  result = result.split( '<!--VERSION-->' ).join( subval.version );
+  log.d( 'chkrep:::' + result );
+  result = result.split( '<!--JOBNUMBER-->' ).join( subval.jobnumber );
+  log.d( 'chkrep:::' + result );
+  result = result.split( '<!--JOB-->' ).join( subval.job );
+  log.d( 'chkrep:::' + result );
 
 }
 
