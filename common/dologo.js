@@ -54,9 +54,9 @@ module.exports.doLogo = function( parg, cbDone ) {
         function( cb ) { auditLogOptional( parg, cb ) },
         function( cb ) { applyLogo( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
-        function( cb ) { replacePdf( parg, cb ) },
+//        function( cb ) { replacePdf( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
-        function( cb ) { updatePdfEntryStatus( parg, cb ) },
+//        function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 
       ], function( err, result ) {
