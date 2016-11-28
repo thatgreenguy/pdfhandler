@@ -98,7 +98,7 @@ function checkGetNewPdf( parg, next ) {
         if ( parg.newPdfStatus == '100' ) {
 
           log.d( parg.newPdf + ' perform Logo processing' ); 
-          dologo.doLogo( parg, function( err, result ) {
+///////          dologo.doLogo( parg, function( err, result ) {
 
             if ( err ) {
 
@@ -119,7 +119,7 @@ function checkGetNewPdf( parg, next ) {
           if ( parg.newPdfStatus == '200' ) {
 
             log.d( parg.newPdf = ' perform Mail processing ' ); 
-            domail.doMail( parg, function( err, result ) { 
+///////            domail.doMail( parg, function( err, result ) { 
 
               if ( err ) {
 
