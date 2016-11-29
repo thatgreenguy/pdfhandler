@@ -52,11 +52,11 @@ module.exports.doLogo = function( parg, cbDone ) {
         function( cb ) { auditLog( parg, cb ) },
         function( cb ) { copyPdf( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
-//        function( cb ) { applyLogo( parg, cb ) },
+        function( cb ) { applyLogo( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
 //        function( cb ) { replacePdf( parg, cb ) },
         function( cb ) { auditLogOptional( parg, cb ) },
-//        function( cb ) { updatePdfEntryStatus( parg, cb ) },
+        function( cb ) { updatePdfEntryStatus( parg, cb ) },
         function( cb ) { auditLog( parg, cb ) }
 
       ], function( err, result ) {
@@ -212,6 +212,9 @@ function copyPdf( parg, cb ) {
 
   } else {
 
+    // Migration to Windows server files appended with '.pdf'
+    parg.newPdf = parg.newPdf.trim() + '.pdf';
+
     log.v( parg.newPdf + ' : Copy PDF : Copy original JDE PDF (from Output Queue) to working copy appended with "_ORIGINAL"' );
     cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + "_ORIGINAL";
     parg.cmd += cmd;
@@ -231,8 +234,6 @@ function copyPdf( parg, cb ) {
       }
     });
   }
-
-process.exit(1);
 
 }
 
@@ -276,6 +277,9 @@ function applyLogo( parg, cb ) {
       }
     });
   }
+
+process.exit(1);
+
 
 }
 
