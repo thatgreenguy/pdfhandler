@@ -88,7 +88,7 @@ function mountJdeQueue( cb) {
   cmd += sshfsUser + '@' + sshfsHost + ':' + remoteJdeDir + ' ' +  localJdeDir;  
 
 // JDE has been migrated to windows server hence different mount command required
-  cmd = 'mount -t cifs -o username=' + sshfsUser + ',password=' + sshfsPassword + ',uid=0,gid=0 //' + sshfsHost + remoteJdeDir + ' /home/pdfdata'
+  cmd = 'mount -t cifs -o username=' + sshfsUser + ',password=' + sshfsPassword + ',uid=0,gid=0 //' + sshfsHost + '/' + remoteJdeDir + ' /home/pdfdata'
 
 
   
@@ -117,6 +117,9 @@ function mountSharedWorkDir( cb) {
   cmd += sshfsServerKeepaliveSeconds;
   cmd += ' -o Ciphers=arcfour  -o cache=no -o password_stdin '
   cmd += sshfsUser + '@' + sshfsHost + ':' + remoteWorkDir + ' ' +  localWorkDir;  
+
+// JDE has been migrated to windows server hence different mount command required
+  cmd = 'mount -t cifs -o username=' + sshfsUser + ',password=' + sshfsPassword + ',uid=0,gid=0 //' + sshfsHost + '/' + remoteJdeDir + ' ' + localWorkDir
 
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
