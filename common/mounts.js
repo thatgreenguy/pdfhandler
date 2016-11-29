@@ -86,6 +86,11 @@ function mountJdeQueue( cb) {
   cmd += sshfsServerKeepaliveSeconds;
   cmd += ' -o Ciphers=arcfour  -o cache=no -o password_stdin '
   cmd += sshfsUser + '@' + sshfsHost + ':' + remoteJdeDir + ' ' +  localJdeDir;  
+
+// JDE has been migrated to windows server hence different mount command required
+  cmd = 'mount -t cifs -o username=' + sshfsUser + ',password=' + sshfsPassword + ',uid=0,gid=0 //' + sshfsHost + remoteJdeDir + ' /home/pdfdata'
+
+
   
   exec( cmd, function( err, stdout, stderr ) {
     if ( err !== null ) {
