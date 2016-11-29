@@ -320,10 +320,6 @@ function replacePdf( parg, cb ) {
     });
   }
 
-
-process.exit(1);
-
-
 }
 
 
