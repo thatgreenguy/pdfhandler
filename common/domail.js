@@ -376,10 +376,14 @@ function copyPdf( parg, cb ) {
 
   } else {
 
+    // Migration to Windows server files appended with '.pdf'
+    parg.newPdf = parg.newPdf.trim() + '.pdf';
+
     // Copy the PDF or the CSV file
     if ( parg.mailOptions.EMAIL_CSV !== 'Y' ) {
 
-      cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.pdf';
+      // Old AIX line      cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.pdf';
+      cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim();;
       log.v( parg.newPdf + parg.cmd + ' - Copy report to be mailed and give it a .pdf extension' );
 
     } else {

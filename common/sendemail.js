@@ -4,13 +4,20 @@ var nodemailer = require( 'nodemailer' ),
   smtpTransport,
   smtphost = process.env.MAIL_HOST,
   smtpport = process.env.MAIL_PORT,
+  smtpuser = process.env.MAIL_USER,
+  smtppwd = process.env.MAIL_PWD,
   jdeEnv = process.env.JDE_ENV,
   jdeEnvDb = process.env.JDE_ENV_DB;
 
 
 smtpTransport = nodemailer.createTransport( "SMTP", {
   host: smtphost,
-  port: smtpport
+  port: smtpport,
+  secure: true,		// use SSL
+  auth: {
+    user: smtpuser,
+    pwd: smtppwd
+  }
 });
 
 
