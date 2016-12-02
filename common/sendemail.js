@@ -310,9 +310,9 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
   if ( csv !== 'Y' ) {
 
 //    wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
+//    wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
     wrk[ 'filename' ] = jdeJob.trim();
-
-    wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
+    wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim();
   } else {
     wrk[ 'filename' ] = jdeJob.trim() + '.csv';
     wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.csv';
