@@ -14,7 +14,7 @@ smtpTransport = nodemailer.createTransport( "SMTP", {
   service: "Gmail",
   auth: {
     user: smtpuser,
-    pwd: smtppwd
+    pass: smtppwd
   }
 });
 
@@ -308,7 +308,10 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   // Could be sending .pdf or .csv
   if ( csv !== 'Y' ) {
-    wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
+
+###    wrk[ 'filename' ] = jdeJob.trim() + '.pdf';
+    wrk[ 'filename' ] = jdeJob.trim();
+
     wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.pdf';
   } else {
     wrk[ 'filename' ] = jdeJob.trim() + '.csv';
