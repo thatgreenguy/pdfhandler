@@ -11,9 +11,7 @@ var nodemailer = require( 'nodemailer' ),
 
 
 smtpTransport = nodemailer.createTransport( "SMTP", {
-  host: smtphost,
-  port: smtpport,
-  secure: true,		// use SSL
+  service: "Gmail",
   auth: {
     user: smtpuser,
     pwd: smtppwd
