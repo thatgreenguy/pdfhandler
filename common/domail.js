@@ -376,19 +376,20 @@ function copyPdf( parg, cb ) {
 
   } else {
 
-    // Migration to Windows server files appended with '.pdf'
-    parg.newPdf = parg.newPdf.trim() + '.pdf';
 
     // Copy the PDF or the CSV file
     if ( parg.mailOptions.EMAIL_CSV !== 'Y' ) {
 
       // Old AIX line      cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.pdf';
+    
+      // Migration to Windows server files appended with '.pdf'
+      parg.newPdf = parg.newPdf.trim() + '.pdf';
       cmd = "cp /home/pdfdata/" + parg.newPdf + " /home/shareddata/wrkdir/" + parg.newPdf.trim();;
       log.v( parg.newPdf + parg.cmd + ' - Copy report to be mailed and give it a .pdf extension' );
 
     } else {
 
-      cmd = "cp /home/pdfdata/" + parg.newPdf.trim() + '.csv' + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.csv';
+      cmd = "cp /home/pdfdata/" + parg.newPdf.trim() + '.CSV' + " /home/shareddata/wrkdir/" + parg.newPdf.trim() + '.csv';
       log.v( parg.newPdf + parg.cmd + ' - Copy report to be mailed to work directory and give it .csv extension' );
 
     }
@@ -487,7 +488,7 @@ function removePdfCopy( parg, cb  ) {
 
     } else {
 
-      cmd = "rm /home/shareddata/wrkdir/" + parg.newPdf.trim() + ".csv";
+      cmd = "rm /home/shareddata/wrkdir/" + parg.newPdf.trim() + ".CSV";
 
     }
     log.d( cmd );

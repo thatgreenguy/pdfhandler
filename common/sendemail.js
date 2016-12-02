@@ -305,6 +305,8 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
 
   }
 
+  log.d( pargs.newPdf + ' EMAIL: ' + jdeJob.trim() );
+
 
   // Could be sending .pdf or .csv
   if ( csv !== 'Y' ) {
@@ -314,7 +316,7 @@ module.exports.sendEmail = function( pargs, postMailCb ) {
     wrk[ 'filename' ] = jdeJob.trim();
     wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim();
   } else {
-    wrk[ 'filename' ] = jdeJob.trim() + '.csv';
+    wrk[ 'filename' ] = jdeJob.trim() + '.CSV';
     wrk[ 'filePath' ] = '/home/shareddata/wrkdir/' + jdeJob.trim() + '.csv';
   }
 
