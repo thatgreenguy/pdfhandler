@@ -107,6 +107,18 @@ module.exports.getLogoConfig = function(  parg, cbWhenDone ) {
 
         }
 
+	// Code patch for dealing with jobs that produce no PDF files resulting in copy failure and queued entries stuck at 100
+	// logoConfig will be *ALL or version specific at this point so check value and set if Logo is required or not
+	if ( parg.logoConfig == 'N' ) {
+		// No Logo will be applied and job queue entry will advance to status 200
+		log.w( parg.newPdf + ' : LOGO Disabled' );
+		parg.applyLogo = 'N';
+	} else {
+		log.w( parg.newPdf + ' : LOGO Required' );
+		parg.applyLogo = 'Y';
+	}
+
+
       } else {
 
         log.d( parg.newPdf + ' : No PDFLOGO config found ' );
